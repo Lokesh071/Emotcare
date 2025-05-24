@@ -1,0 +1,23 @@
+name = "emotcare"
+main = "app.py"
+compatibility_date = "2023-10-02"
+compatibility_flags = ["python_workers"]
+workers_dev = true
+
+[build]
+command = "pip install -r requirements.txt"
+
+[vars]
+REDIS_URL = "redis://default:AZrAAAIjcDE0ODA0MzFiMWVmYmI0NjU2OTM4NjMyNmM3ODBmZDFiNXAxMA@talented-shrimp-39616.upstash.io:6379"
+MAIL_USERNAME = "faceauth01@gmail.com"
+MAIL_PASSWORD = "tavx rome qann smoq"
+MAIL_DEFAULT_SENDER = "faceauth01@gmail.com"
+SECRET_KEY = "emotcare-secret-key-for-secure-sessions"
+
+[[kv_namespaces]]
+binding = "EMOTCARE_KV"
+id = "emotcare-kv"
+
+# Specify Python as the worker runtime
+[build.upload]
+format = "service-worker"

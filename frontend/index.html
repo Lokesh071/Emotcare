@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmotiCare - Your Emotion Companion</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="paper-background">
+        <header class="cute-header">
+            <div class="logo-container">
+                <div class="cute-logo">
+                    <span class="emoji-face">😊</span>
+                    <h1>EmotiCare</h1>
+                </div>
+            </div>
+            <nav class="paper-nav">
+                <a href="#home" class="nav-button">Home</a>
+                <a href="#detection" class="nav-button">Emotion Check</a>
+                <a href="#profile" class="nav-button">Profile</a>
+                <a href="#logout" class="nav-button logout-btn">Logout</a>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <section class="hero-section">
+                <div class="cute-card main-card">
+                    <div class="card-decoration">
+                        <span class="decoration-element rainbow">🌈</span>
+                        <span class="decoration-element sun">☀️</span>
+                        <span class="decoration-element flower">🌸</span>
+                    </div>
+                    
+                    <h2 class="cute-title">How are you feeling today?</h2>
+                    <p class="cute-subtitle">Let me help you understand and improve your emotions!</p>
+                    
+                    <div class="emotion-detection-area">
+                        <video id="video" autoplay muted class="video-feed"></video>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                        <div class="emotion-result" id="emotionResult"></div>
+                    </div>
+                    
+                    <button id="startDetection" class="cute-button primary">
+                        <span class="button-emoji">📸</span>
+                        Start Emotion Detection
+                    </button>
+                </div>
+            </section>
+
+            <section class="interaction-section" id="interactionSection" style="display: none;">
+                <div class="cute-card interaction-card">
+                    <div class="emotion-display" id="emotionDisplay"></div>
+                    <div class="conversation-area" id="conversationArea"></div>
+                    <div class="input-area">
+                        <textarea id="userResponse" placeholder="Tell me more..." class="cute-textarea"></textarea>
+                        <button id="sendResponse" class="cute-button secondary">Send</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+    <script src="js/emotion-detection.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
