@@ -1,4 +1,3 @@
-# utils/email_service.py
 from flask_mail import Message
 from flask import url_for, current_app
 import smtplib
@@ -10,82 +9,76 @@ class EmailService:
     def __init__(self, mail=None):
         self.mail = mail
         self.logger = logging.getLogger(__name__)
-    
+
     def send_verification_email(self, user):
-        """Send email verification to user"""
         try:
             subject = "Welcome to EmotiCare - Verify Your Email 🌟"
             verification_url = url_for('auth.verify_email', token=user.verification_token, _external=True)
-            
+
             html_content = self._get_verification_email_template(user, verification_url)
-            
+
             return self._send_email(
                 to_email=user.email,
                 subject=subject,
                 html_content=html_content
             )
-            
+
         except Exception as e:
             self.logger.error(f"Error sending verification email: {e}")
             return False
-    
-    def send_password_reset_email(self, user):
-        """Send password reset email to user"""
+
+    def send_password_reset_email(self, user, temp_password):
         try:
-            subject = "EmotiCare - Password Reset Request 🔐"
-            reset_url = url_for('auth.reset_password', token=user.reset_token, _external=True)
-            
-            html_content = self._get_password_reset_email_template(user, reset_url)
-            
+            subject = "🔑 EmotiCare - Your Temporary Password"
+
+            html_content = self._get_temp_password_email_template(user, temp_password)
+
             return self._send_email(
                 to_email=user.email,
                 subject=subject,
                 html_content=html_content
             )
-            
+
         except Exception as e:
             self.logger.error(f"Error sending password reset email: {e}")
             return False
-    
+
     def send_welcome_email(self, user):
-        """Send welcome email after successful verification"""
         try:
             subject = "Welcome to EmotiCare! Let's Begin Your Journey 🚀"
-            
+
             html_content = self._get_welcome_email_template(user)
-            
+
             return self._send_email(
                 to_email=user.email,
                 subject=subject,
                 html_content=html_content
             )
-            
+
         except Exception as e:
             self.logger.error(f"Error sending welcome email: {e}")
             return False
-    
+
     def send_emotion_summary_email(self, user, emotion_data):
-        """Send weekly emotion summary to user"""
         try:
             subject = "Your Weekly Emotion Summary 📊"
-            
+
             html_content = self._get_emotion_summary_email_template(user, emotion_data)
-            
+
             return self._send_email(
                 to_email=user.email,
                 subject=subject,
                 html_content=html_content
             )
-            
+
         except Exception as e:
             self.logger.error(f"Error sending emotion summary email: {e}")
             return False
-    
+
     def send_support_email(self, user, subject, message):
-        """Send support email from user"""
         try:
             support_subject = f"EmotiCare Support: {subject}"
-            
+
             html_content = f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2>Support Request from {user.username}</h2>
@@ -99,23 +92,21 @@ class EmailService:
                 <p><em>Sent from EmotiCare Support System</em></p>
             </div>
             """
-            
+
             return self._send_email(
                 to_email=current_app.config.get('SUPPORT_EMAIL', 'support@emoticare.com'),
                 subject=support_subject,
                 html_content=html_content,
                 reply_to=user.email
             )
-            
+
         except Exception as e:
             self.logger.error(f"Error sending support email: {e}")
             return False
-    
+
     def _send_email(self, to_email, subject, html_content, reply_to=None):
-        """Send email using Flask-Mail or SMTP"""
         try:
             if self.mail:
-                # Use Flask-Mail
                 msg = Message(
                     subject=subject,
                     recipients=[to_email],
@@ -123,55 +114,49 @@ class EmailService:
                 )
                 if reply_to:
                     msg.reply_to = reply_to
-                
+
                 self.mail.send(msg)
                 return True
             else:
-                # Use direct SMTP
                 return self._send_smtp_email(to_email, subject, html_content, reply_to)
-                
+
         except Exception as e:
             self.logger.error(f"Error sending email: {e}")
             return False
-    
+
     def _send_smtp_email(self, to_email, subject, html_content, reply_to=None):
-        """Send email using direct SMTP"""
         try:
             smtp_server = current_app.config.get('MAIL_SERVER', 'smtp.gmail.com')
             smtp_port = current_app.config.get('MAIL_PORT', 587)
             smtp_username = current_app.config.get('MAIL_USERNAME')
             smtp_password = current_app.config.get('MAIL_PASSWORD')
-            
+
             if not smtp_username or not smtp_password:
                 self.logger.error("SMTP credentials not configured")
                 return False
-            
-            # Create message
+
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
             msg['From'] = smtp_username
             msg['To'] = to_email
             if reply_to:
                 msg['Reply-To'] = reply_to
-            
-            # Attach HTML content
+
             html_part = MIMEText(html_content, 'html')
             msg.attach(html_part)
-            
-            # Send email
+
             with smtplib.SMTP(smtp_server, smtp_port) as server:
                 server.starttls()
                 server.login(smtp_username, smtp_password)
                 server.send_message(msg)
-            
+
             return True
-            
+
         except Exception as e:
             self.logger.error(f"Error sending SMTP email: {e}")
             return False
-    
+
     def _get_verification_email_template(self, user, verification_url):
-        """Get HTML template for verification email"""
         return f"""
         <!DOCTYPE html>
         <html>
@@ -183,7 +168,7 @@ class EmailService:
         <body style="margin: 0; padding: 0; font-family: 'Comic Sans MS', cursive, Arial, sans-serif;">
             <div style="background: linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%); padding: 20px; min-height: 100vh;">
                 <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; border: 4px solid #ff6b6b; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
-                    
+
                     <!-- Header -->
                     <div style="background: linear-gradient(45deg, #ff6b6b 0%, #4ecdc4 100%); padding: 30px; text-align: center;">
                         <h1 style="color: white; margin: 0; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
@@ -193,7 +178,7 @@ class EmailService:
                             Your emotional wellness journey starts here
                         </p>
                     </div>
-                    
+
                     <!-- Content -->
                     <div style="padding: 40px 30px;">
                         <div style="text-align: center; margin-bottom: 30px;">
@@ -202,11 +187,11 @@ class EmailService:
                                 Hi {user.username}!
                             </h2>
                             <p style="color: #666; font-size: 1.1rem; line-height: 1.6; margin: 0;">
-                                We're thrilled to have you join our community of emotional wellness! 
+                                We're thrilled to have you join our community of emotional wellness!
                                 Get ready to discover, understand, and improve your emotional well-being with AI-powered insights.
                             </p>
                         </div>
-                        
+
                         <!-- Features -->
                         <div style="background: linear-gradient(45deg, #a8e6cf 0%, #dcedc1 100%); padding: 25px; border-radius: 15px; margin: 30px 0; border: 3px solid #fff;">
                             <h3 style="color: #2d5a27; margin: 0 0 20px 0; text-align: center; font-size: 1.3rem;">
@@ -235,7 +220,7 @@ class EmailService:
                                 </li>
                             </ul>
                         </div>
-                        
+
                         <!-- Verification Button -->
                         <div style="text-align: center; margin: 40px 0;">
                             <p style="color: #666; font-size: 1.1rem; margin-bottom: 25px;">
@@ -245,7 +230,7 @@ class EmailService:
                                 ✨ Verify My Email ✨
                             </a>
                         </div>
-                        
+
                         <!-- Tips -->
                         <div style="background: linear-gradient(45deg, #ffd3a5 0%, #fd9853 100%); padding: 25px; border-radius: 15px; margin: 30px 0; border: 3px solid #fff;">
                             <h3 style="color: white; margin: 0 0 15px 0; text-align: center;">
@@ -258,7 +243,7 @@ class EmailService:
                                 <li style="margin: 8px 0;">🌱 Remember that emotional growth is a journey</li>
                             </ul>
                         </div>
-                        
+
                         <!-- Support -->
                         <div style="text-align: center; margin-top: 40px; padding-top: 30px; border-top: 2px solid #f0f0f0;">
                             <p style="color: #999; font-size: 0.9rem; margin: 0 0 10px 0;">
@@ -274,9 +259,8 @@ class EmailService:
         </body>
         </html>
         """
-    
+
     def _get_password_reset_email_template(self, user, reset_url):
-        """Get HTML template for password reset email"""
         return f"""
         <!DOCTYPE html>
         <html>
@@ -288,14 +272,14 @@ class EmailService:
         <body style="margin: 0; padding: 0; font-family: 'Comic Sans MS', cursive, Arial, sans-serif;">
             <div style="background: linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%); padding: 20px; min-height: 100vh;">
                 <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; border: 4px solid #ff6b6b; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
-                    
+
                     <!-- Header -->
                     <div style="background: linear-gradient(45deg, #fd79a8 0%, #e84393 100%); padding: 30px; text-align: center;">
                         <h1 style="color: white; margin: 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
                             🔐 Password Reset Request
                         </h1>
                     </div>
-                    
+
                     <!-- Content -->
                     <div style="padding: 40px 30px;">
                         <div style="text-align: center; margin-bottom: 30px;">
@@ -304,11 +288,11 @@ class EmailService:
                                 Hi {user.username}!
                             </h2>
                             <p style="color: #666; font-size: 1.1rem; line-height: 1.6; margin: 0;">
-                                We received a request to reset your EmotiCare password. 
+                                We received a request to reset your EmotiCare password.
                                 Don't worry, it happens to the best of us! 😊
                             </p>
                         </div>
-                        
+
                         <!-- Reset Button -->
                         <div style="text-align: center; margin: 40px 0;">
                             <p style="color: #666; font-size: 1rem; margin-bottom: 25px;">
@@ -320,7 +304,7 @@ class EmailService:
                                 🔐 Reset My Password
                             </a>
                         </div>
-                        
+
                         <!-- Security Notice -->
                         <div style="background: linear-gradient(45deg, #74b9ff 0%, #0984e3 100%); padding: 25px; border-radius: 15px; margin: 30px 0; border: 3px solid #fff;">
                             <h3 style="color: white; margin: 0 0 15px 0; text-align: center;">
@@ -333,7 +317,7 @@ class EmailService:
                                 <li style="margin: 8px 0;">📧 Contact support if you have concerns</li>
                             </ul>
                         </div>
-                        
+
                         <!-- Alternative -->
                         <div style="text-align: center; margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 10px;">
                             <p style="color: #666; font-size: 0.9rem; margin: 0 0 10px 0;">
@@ -343,7 +327,7 @@ class EmailService:
                                 {reset_url}
                             </p>
                         </div>
-                        
+
                         <!-- Support -->
                         <div style="text-align: center; margin-top: 40px; padding-top: 30px; border-top: 2px solid #f0f0f0;">
                             <p style="color: #999; font-size: 0.9rem; margin: 0 0 10px 0;">
@@ -359,9 +343,120 @@ class EmailService:
         </body>
         </html>
         """
-    
+
+    def _get_temp_password_email_template(self, user, temp_password):
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Your Temporary Password - EmotiCare</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Comic Sans MS', cursive, Arial, sans-serif;">
+            <div style="background: linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%); padding: 20px; min-height: 100vh;">
+                <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; border: 4px solid #ff6b6b; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
+
+                    <!-- Header -->
+                    <div style="background: linear-gradient(45deg, #fd79a8 0%, #e84393 100%); padding: 30px; text-align: center;">
+                        <h1 style="color: white; margin: 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                            🔑 Your Temporary Password
+                        </h1>
+                        <p style="color: white; margin: 10px 0 0 0; font-size: 1.1rem; opacity: 0.9;">
+                            Access restored! Please update your password
+                        </p>
+                    </div>
+
+                    <!-- Content -->
+                    <div style="padding: 40px 30px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <div style="font-size: 3rem; margin-bottom: 20px;">🔐</div>
+                            <h2 style="color: #ff6b6b; margin: 0 0 15px 0; font-size: 1.6rem;">
+                                Hi {user.username}!
+                            </h2>
+                            <p style="color: #666; font-size: 1.1rem; line-height: 1.6; margin: 0;">
+                                We've generated a temporary password for your EmotiCare account.
+                                Please use this to log in and update your password immediately.
+                            </p>
+                        </div>
+
+                        <!-- Temporary Password -->
+                        <div style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 15px; margin: 30px 0; border: 3px solid #fff; text-align: center;">
+                            <h3 style="color: white; margin: 0 0 20px 0; font-size: 1.2rem;">
+                                🔑 Your Temporary Password:
+                            </h3>
+                            <div style="background: white; padding: 20px; border-radius: 10px; margin: 15px 0;">
+                                <span style="font-family: 'Courier New', monospace; font-size: 1.8rem; font-weight: bold; color: #667eea; letter-spacing: 3px;">
+                                    {temp_password}
+                                </span>
+                            </div>
+                            <p style="color: white; margin: 15px 0 0 0; font-size: 0.9rem; opacity: 0.9;">
+                                Copy this password exactly as shown (case-sensitive)
+                            </p>
+                        </div>
+
+                        <!-- Security Notice -->
+                        <div style="background: linear-gradient(45deg, #ff7675 0%, #d63031 100%); padding: 25px; border-radius: 15px; margin: 30px 0; border: 3px solid #fff;">
+                            <h3 style="color: white; margin: 0 0 15px 0; text-align: center;">
+                                ⚠️ Important Security Steps:
+                            </h3>
+                            <ul style="color: white; margin: 0; padding: 0; list-style: none; font-size: 0.95rem;">
+                                <li style="margin: 10px 0; padding-left: 25px; position: relative;">
+                                    <span style="position: absolute; left: 0; top: 0;">1️⃣</span>
+                                    Log in with this temporary password immediately
+                                </li>
+                                <li style="margin: 10px 0; padding-left: 25px; position: relative;">
+                                    <span style="position: absolute; left: 0; top: 0;">2️⃣</span>
+                                    Go to Dashboard → Settings → Change Password
+                                </li>
+                                <li style="margin: 10px 0; padding-left: 25px; position: relative;">
+                                    <span style="position: absolute; left: 0; top: 0;">3️⃣</span>
+                                    Create a strong, unique password
+                                </li>
+                                <li style="margin: 10px 0; padding-left: 25px; position: relative;">
+                                    <span style="position: absolute; left: 0; top: 0;">4️⃣</span>
+                                    Delete this email after updating your password
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Login Button -->
+                        <div style="text-align: center; margin: 40px 0;">
+                            <a href="{url_for('index', _external=True)}" style="display: inline-block; background: linear-gradient(45deg, #00b894 0%, #00a085 100%); color: white; padding: 18px 40px; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 1.2rem; border: 3px solid #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
+                                🚀 Login to EmotiCare
+                            </a>
+                        </div>
+
+                        <!-- Tips -->
+                        <div style="background: linear-gradient(45deg, #74b9ff 0%, #0984e3 100%); padding: 25px; border-radius: 15px; margin: 30px 0; border: 3px solid #fff;">
+                            <h3 style="color: white; margin: 0 0 15px 0; text-align: center;">
+                                💡 Password Security Tips:
+                            </h3>
+                            <ul style="color: white; margin: 0; padding: 0; list-style: none; font-size: 0.9rem;">
+                                <li style="margin: 8px 0;">🔤 Use a mix of uppercase and lowercase letters</li>
+                                <li style="margin: 8px 0;">🔢 Include numbers and special characters</li>
+                                <li style="margin: 8px 0;">📏 Make it at least 8 characters long</li>
+                                <li style="margin: 8px 0;">🚫 Don't reuse passwords from other accounts</li>
+                            </ul>
+                        </div>
+
+                        <!-- Support -->
+                        <div style="text-align: center; margin-top: 40px; padding-top: 30px; border-top: 2px solid #f0f0f0;">
+                            <p style="color: #999; font-size: 0.9rem; margin: 0 0 10px 0;">
+                                If you didn't request a password reset, please contact our support team immediately.
+                            </p>
+                            <p style="color: #ff6b6b; font-weight: bold; margin: 0; font-size: 1.1rem;">
+                                💖 The EmotiCare Team BY Lokesh071💖
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
     def _get_welcome_email_template(self, user):
-        """Get HTML template for welcome email"""
         return f"""
         <!DOCTYPE html>
         <html>
@@ -373,7 +468,7 @@ class EmailService:
         <body style="margin: 0; padding: 0; font-family: 'Comic Sans MS', cursive, Arial, sans-serif;">
             <div style="background: linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%); padding: 20px; min-height: 100vh;">
                 <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; border: 4px solid #4ecdc4; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
-                    
+
                     <!-- Header -->
                     <div style="background: linear-gradient(45deg, #4ecdc4 0%, #44a08d 100%); padding: 30px; text-align: center;">
                         <h1 style="color: white; margin: 0; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
@@ -383,7 +478,7 @@ class EmailService:
                             Your emotional wellness journey begins now!
                         </p>
                     </div>
-                    
+
                     <!-- Content -->
                     <div style="padding: 40px 30px;">
                         <div style="text-align: center; margin-bottom: 30px;">
@@ -392,11 +487,11 @@ class EmailService:
                                 Congratulations {user.username}!
                             </h2>
                             <p style="color: #666; font-size: 1.1rem; line-height: 1.6; margin: 0;">
-                                Your email has been verified and your EmotiCare account is now active! 
+                                Your email has been verified and your EmotiCare account is now active!
                                 You're all set to begin exploring your emotional landscape with our AI-powered tools.
                             </p>
                         </div>
-                        
+
                         <!-- Next Steps -->
                         <div style="background: linear-gradient(45deg, #a8e6cf 0%, #dcedc1 100%); padding: 25px; border-radius: 15px; margin: 30px 0; border: 3px solid #fff;">
                             <h3 style="color: #2d5a27; margin: 0 0 20px 0; text-align: center; font-size: 1.3rem;">
@@ -421,14 +516,14 @@ class EmailService:
                                 </li>
                             </ul>
                         </div>
-                        
+
                         <!-- CTA Button -->
                         <div style="text-align: center; margin: 40px 0;">
                             <a href="{url_for('index', _external=True)}" style="display: inline-block; background: linear-gradient(45deg, #4ecdc4 0%, #44a08d 100%); color: white; padding: 18px 40px; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 1.2rem; border: 3px solid #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
                                 🌟 Start My Journey 🌟
                             </a>
                         </div>
-                        
+
                         <!-- Tips -->
                         <div style="background: linear-gradient(45deg, #ffd3a5 0%, #fd9853 100%); padding: 25px; border-radius: 15px; margin: 30px 0; border: 3px solid #fff;">
                             <h3 style="color: white; margin: 0 0 15px 0; text-align: center;">
@@ -441,7 +536,7 @@ class EmailService:
                                 <li style="margin: 8px 0;">🤝 Don't hesitate to reach out for support</li>
                             </ul>
                         </div>
-                        
+
                         <!-- Support -->
                         <div style="text-align: center; margin-top: 40px; padding-top: 30px; border-top: 2px solid #f0f0f0;">
                             <p style="color: #666; font-size: 1rem; margin: 0 0 15px 0;">
@@ -457,9 +552,8 @@ class EmailService:
         </body>
         </html>
         """
-    
+
     def _get_emotion_summary_email_template(self, user, emotion_data):
-        """Get HTML template for emotion summary email"""
         return f"""
         <!DOCTYPE html>
         <html>
@@ -471,7 +565,7 @@ class EmailService:
         <body style="margin: 0; padding: 0; font-family: 'Comic Sans MS', cursive, Arial, sans-serif;">
             <div style="background: linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%); padding: 20px; min-height: 100vh;">
                 <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; border: 4px solid #ff6b6b; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
-                    
+
                     <!-- Header -->
                     <div style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
                         <h1 style="color: white; margin: 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
@@ -481,7 +575,7 @@ class EmailService:
                             Insights into your emotional journey
                         </p>
                     </div>
-                    
+
                     <!-- Content -->
                     <div style="padding: 40px 30px;">
                         <div style="text-align: center; margin-bottom: 30px;">
@@ -489,11 +583,11 @@ class EmailService:
                                 Hi {user.username}! 👋
                             </h2>
                             <p style="color: #666; font-size: 1rem; line-height: 1.6; margin: 0;">
-                                Here's a summary of your emotional patterns from the past week. 
+                                Here's a summary of your emotional patterns from the past week.
                                 Remember, awareness is the first step toward growth! 🌱
                             </p>
                         </div>
-                        
+
                         <!-- Emotion Stats -->
                         <div style="background: linear-gradient(45deg, #a8e6cf 0%, #dcedc1 100%); padding: 25px; border-radius: 15px; margin: 30px 0; border: 3px solid #fff;">
                             <h3 style="color: #2d5a27; margin: 0 0 20px 0; text-align: center;">
@@ -503,7 +597,7 @@ class EmailService:
                                 {self._format_emotion_stats(emotion_data)}
                             </div>
                         </div>
-                        
+
                         <!-- Insights -->
                         <div style="background: linear-gradient(45deg, #ffd3a5 0%, #fd9853 100%); padding: 25px; border-radius: 15px; margin: 30px 0; border: 3px solid #fff;">
                             <h3 style="color: white; margin: 0 0 15px 0; text-align: center;">
@@ -513,18 +607,18 @@ class EmailService:
                                 {self._generate_insights(emotion_data)}
                             </div>
                         </div>
-                        
+
                         <!-- CTA -->
                         <div style="text-align: center; margin: 40px 0;">
                             <a href="{url_for('index', _external=True)}" style="display: inline-block; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); color: white; padding: 18px 40px; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 1.1rem; border: 3px solid #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
                                 📈 View Detailed Analytics
                             </a>
                         </div>
-                        
+
                         <!-- Footer -->
                         <div style="text-align: center; margin-top: 40px; padding-top: 30px; border-top: 2px solid #f0f0f0;">
                             <p style="color: #666; font-size: 0.9rem; margin: 0 0 10px 0;">
-                                Keep up the great work on your emotional wellness journey! 
+                                Keep up the great work on your emotional wellness journey!
                             </p>
                             <p style="color: #667eea; font-weight: bold; margin: 0; font-size: 1rem;">
                                 💜 The EmotiCare Team BY Lokesh071💜
@@ -536,12 +630,12 @@ class EmailService:
         </body>
         </html>
         """
-    
+
     def _format_emotion_stats(self, emotion_data):
         """Format emotion statistics for email"""
         if not emotion_data:
             return "<p>No emotion data available for this period.</p>"
-        
+
         stats_html = ""
         for emotion, count in emotion_data.get('frequency', {}).items():
             percentage = emotion_data.get('percentages', {}).get(emotion, 0)
@@ -552,30 +646,30 @@ class EmailService:
                 <strong>{emotion.title()}</strong>: {count} times ({percentage}%)
             </div>
             """
-        
+
         return stats_html
-    
+
     def _generate_insights(self, emotion_data):
         """Generate insights based on emotion data"""
         insights = []
-        
+
         if emotion_data.get('most_frequent'):
             most_frequent = emotion_data['most_frequent']
             insights.append(f"📊 Your most frequent emotion this week was {most_frequent}")
-        
+
         if emotion_data.get('trend') == 'improving':
             insights.append("📈 Your emotional wellness is trending positively!")
         elif emotion_data.get('trend') == 'declining':
             insights.append("📉 Consider focusing on self-care activities this week")
-        
+
         if emotion_data.get('diversity_score', 0) > 0.7:
             insights.append("🌈 Great emotional diversity - you're experiencing a healthy range of emotions")
-        
+
         if not insights:
             insights.append("🌟 Keep tracking your emotions to unlock personalized insights")
-        
+
         return "<br>".join(f"• {insight}" for insight in insights)
-    
+
     def _get_emotion_emoji(self, emotion):
         """Get emoji for emotion"""
         emojis = {

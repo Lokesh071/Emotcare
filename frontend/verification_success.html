@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verified - EmotiCare</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="paper-background">
+        <div class="auth-container">
+            <div class="cute-card auth-card">
+                <div class="card-decoration">
+                    <span class="decoration-element rainbow">🌈</span>
+                    <span class="decoration-element sun">☀️</span>
+                    <span class="decoration-element flower">🌸</span>
+                </div>
+                
+                <div style="text-align: center;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
+                    <h1 class="form-title" style="color: #4ecdc4;">Email Verified! 🎉</h1>
+                    
+                    <div class="message-container success">
+                        <p style="margin: 0; font-size: 1.1rem;">
+                            <strong>Congratulations {{ username }}!</strong><br>
+                            Your email <strong>{{ email }}</strong> has been successfully verified.
+                        </p>
+                    </div>
+                    
+                    <div style="margin: 30px 0;">
+                        <p style="color: #666; font-size: 1rem; line-height: 1.6;">
+                            🎊 Welcome to the EmotiCare family! Your account is now active and ready to use. 
+                            You can now log in and start your emotional wellness journey with us.
+                        </p>
+                    </div>
+                    
+                    <div style="margin: 30px 0;">
+                        <h3 style="color: #ff6b6b; margin-bottom: 15px;">🚀 What's Next?</h3>
+                        <ul style="text-align: left; color: #666; line-height: 1.8;">
+                            <li>🔐 Log in to your account</li>
+                            <li>📸 Try your first emotion detection</li>
+                            <li>💬 Start personalized conversations</li>
+                            <li>📊 Track your emotional journey</li>
+                        </ul>
+                    </div>
+                    
+                    <a href="{{ url_for('index') }}" class="cute-button primary auth-button" style="text-decoration: none;">
+                        <span class="button-emoji">🏠</span>
+                        Go to Login
+                    </a>
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid rgba(255,255,255,0.3);">
+                        <p style="color: #999; font-size: 0.9rem; margin: 0;">
+                            💖 Thank you for joining EmotiCare! We're excited to support your emotional wellness journey.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

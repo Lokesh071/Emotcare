@@ -1,4 +1,3 @@
-# models/__init__.py
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
@@ -12,17 +11,14 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = db.Column(db.DateTime)
-    
-    # Email verification
+
     is_verified = db.Column(db.Boolean, default=False)
     verification_token = db.Column(db.String(100), unique=True)
     email_verified_at = db.Column(db.DateTime)
-    
-    # Password reset
+
     reset_token = db.Column(db.String(100), unique=True)
     reset_token_expires = db.Column(db.DateTime)
-    
-    # Relationships
+
     emotion_records = db.relationship('EmotionRecord', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
@@ -38,18 +34,15 @@ class User(db.Model):
 class EmotionRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # Emotion data
+
     emotion = db.Column(db.String(50), nullable=False)
     confidence = db.Column(db.Float, nullable=False)
-    detection_method = db.Column(db.String(20), default='webcam')  # webcam, upload, manual
-    
-    # User interaction
+    detection_method = db.Column(db.String(20), default='webcam')
+
     user_response = db.Column(db.Text)
     suggestions_given = db.Column(db.Text)
-    emotion_context = db.Column(db.Text)  # What was happening when emotion was detected
-    
-    # Timestamps
+    emotion_context = db.Column(db.Text)
+
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

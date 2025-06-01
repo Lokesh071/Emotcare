@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmotiCare - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="paper-background">
+        <header class="cute-header">
+            <div class="logo-container">
+                <div class="cute-logo">
+                    <span class="emoji-face">😊</span>
+                    <h1>EmotiCare</h1>
+                </div>
+            </div>
+            <nav class="paper-nav">
+                <a href="#" onclick="showDashboard()" class="nav-button active" id="dashboardNav">Dashboard</a>
+                <a href="{{ url_for('analytics') }}" class="nav-button">Analytics</a>
+                <a href="{{ url_for('profile') }}" class="nav-button">Profile</a>
+                <a href="#" onclick="showSettings()" class="nav-button" id="settingsNav">Settings</a>
+                <a href="#" onclick="logout()" class="nav-button logout-btn">Logout</a>
+            </nav>
+        </header>
+        <main class="main-content">
+            <!-- Emotion Detection Section with Side-by-Side Layout -->
+            <section class="emotion-detection-section">
+                <div class="cute-card main-card">
+                    <div class="tape-bottom"></div>
+                    <div class="card-decoration">
+                        <span class="decoration-element rainbow">🌈</span>
+                        <span class="decoration-element sun">☀️</span>
+                        <span class="decoration-element flower">🌸</span>
+                    </div>
+
+                    <h2 class="cute-title">How are you feeling today?</h2>
+                    <p class="cute-subtitle">Let me help you understand and improve your emotions!</p>
+
+                    <!-- Emotion Detection Layout -->
+                    <div class="emotion-main-container">
+                        <!-- Top: Emotion Detection Display -->
+                        <div class="emotion-detection-header">
+                            <div class="emotion-display" id="emotionDisplay">
+                                <div class="welcome-message">
+                                    <h3>👋 Welcome to EmotiCare!</h3>
+                                    <p>Start emotion detection to begin our conversation.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom: Camera and Chat Side by Side -->
+                        <div class="camera-chat-container">
+                            <!-- Left Side: Camera and Controls -->
+                            <div class="camera-section">
+                                <div class="emotion-detection-area">
+                                    <video id="video" autoplay muted class="video-feed" style="display: none;"></video>
+                                    <canvas id="canvas" style="display: none;"></canvas>
+                                    <div class="camera-placeholder" id="cameraPlaceholder">
+                                        <div class="camera-icon">📹</div>
+                                        <p>Click the button below to start emotion detection</p>
+                                    </div>
+                                    <div class="emotion-result" id="emotionResult"></div>
+                                </div>
+
+                                <div class="camera-controls">
+                                    <button id="startDetection" class="cute-button primary">
+                                        <span class="button-emoji">📸</span>
+                                        Start Emotion Detection
+                                    </button>
+
+                                    <button id="stopDetection" class="cute-button secondary" style="display: none;">
+                                        <span class="button-emoji">⏹️</span>
+                                        Stop Detection
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Right Side: Chat and Interaction -->
+                            <div class="chat-section" id="chatSection">
+                                <div class="conversation-area" id="conversationArea"></div>
+                                <div class="input-area" id="inputArea" style="display: none;">
+                                    <textarea id="userResponse" placeholder="Tell me more..." class="cute-textarea"></textarea>
+                                    <button id="sendResponse" class="cute-button secondary">
+                                        <span class="button-emoji">💬</span>
+                                        Send
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="dashboard-section">
+                <div class="cute-card dashboard-card">
+                    <div class="card-decoration">
+                        <span class="decoration-element rainbow">🌈</span>
+                        <span class="decoration-element sun">☀️</span>
+                        <span class="decoration-element flower">🌸</span>
+                    </div>
+                    <h2 class="cute-title">Your Dashboard</h2>
+                    <p class="cute-subtitle">Track your emotional journey and progress!</p>
+                    <div class="dashboard-stats">
+                        <div class="stat-card paper-effect">
+                            <span class="stat-emoji">📅</span>
+                            <h3>Recent Emotions</h3>
+                            <ul id="recentEmotions">
+                                <li>😊 Happy - Today</li>
+                                <li>😐 Neutral - Yesterday</li>
+                                <li>😢 Sad - 2 days ago</li>
+                            </ul>
+                        </div>
+                        <div class="stat-card paper-effect">
+                            <span class="stat-emoji">📈</span>
+                            <h3>Emotion Trends</h3>
+                            <canvas id="emotionTrendsChart" width="250" height="120"></canvas>
+                        </div>
+                        <div class="stat-card paper-effect">
+                            <span class="stat-emoji">🏆</span>
+                            <h3>Achievements</h3>
+                            <ul>
+                                <li>🌟 7-Day Streak</li>
+                                <li>🎯 First Emotion Detected</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section class="settings-section" style="display: none;" id="settingsSection">
+                <div class="cute-card settings-card">
+                    <div class="card-decoration">
+                        <span class="decoration-element rainbow">🌈</span>
+                        <span class="decoration-element sun">☀️</span>
+                        <span class="decoration-element flower">🌸</span>
+                    </div>
+                    <h2 class="cute-title">⚙️ Account Settings</h2>
+                    <p class="cute-subtitle">Manage your account and security settings</p>
+
+                    <div class="settings-content">
+                        <!-- Change Password Section -->
+                        <div class="setting-group">
+                            <h3>🔐 Change Password</h3>
+                            <p class="setting-description">Update your password to keep your account secure</p>
+
+                            <form id="changePasswordForm" class="password-form">
+                                <div class="input-group">
+                                    <label for="currentPassword">Current Password</label>
+                                    <div class="password-wrapper">
+                                        <input type="password" id="currentPassword" required class="cute-input">
+                                        <span class="toggle-password" data-target="currentPassword">👁️</span>
+                                    </div>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="newPassword">New Password</label>
+                                    <div class="password-wrapper">
+                                        <input type="password" id="newPassword" required class="cute-input" minlength="8">
+                                        <span class="toggle-password" data-target="newPassword">👁️</span>
+                                    </div>
+                                    <div id="newPasswordStrength" class="password-strength"></div>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="confirmNewPassword">Confirm New Password</label>
+                                    <div class="password-wrapper">
+                                        <input type="password" id="confirmNewPassword" required class="cute-input">
+                                        <span class="toggle-password" data-target="confirmNewPassword">👁️</span>
+                                    </div>
+                                </div>
+
+                                <button type="submit" id="changePasswordBtn" class="cute-button primary">
+                                    <span class="button-emoji">🔐</span>
+                                    Update Password
+                                </button>
+                            </form>
+
+                            <div id="passwordChangeMessage" class="message" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <span>Implemented by</span>
+            <a href="https://github.com/Lokesh071" target="_blank" class="github-link">
+                <i class="fab fa-github github-icon"></i>
+                <span>Lokesh071</span>
+            </a>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/emotion-detection.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

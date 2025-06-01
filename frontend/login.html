@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EmotiCare - Sign In</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="paper-background">
@@ -16,74 +18,113 @@
                     <span class="decoration-element sun">☀️</span>
                     <span class="decoration-element flower">🌸</span>
                 </div>
-                
+
                 <h1 class="form-title">Welcome Back! 😊</h1>
-                
+
                 <div id="messageContainer" class="message-container" style="display: none;"></div>
-                
-                <!-- Login Form -->
                 <div id="loginFormContainer">
                     <form id="loginForm" class="auth-form">
                         <div class="input-group">
                             <label for="email">Email Address</label>
                             <input type="email" id="email" required class="cute-input">
                         </div>
-                        
+
                         <div class="input-group">
                             <label for="password">Password</label>
-                            <input type="password" id="password" required class="cute-input">
+                            <div class="password-wrapper">
+                                <input type="password" id="password" required class="cute-input">
+                                <span class="toggle-password" data-target="password">👁️</span>
+                            </div>
                             <div id="passwordStrength" class="password-strength"></div>
                         </div>
-                        
+
                         <button type="submit" id="loginSubmit" class="cute-button primary auth-button" data-original-text="Sign In">
                             <span class="button-emoji">🚀</span>
                             Sign In
                         </button>
                     </form>
-                    
+
                     <div class="auth-switch">
+                        <p><a href="#" id="forgotPasswordLink" class="switch-link">🔑 Forgot Password?</a></p>
                         <p>New to EmotiCare? <a href="#" id="showRegister" class="switch-link">Create an account! 🌟</a></p>
                     </div>
                 </div>
-                
-                <!-- Register Form -->
                 <div id="registerFormContainer" style="display: none;">
                     <form id="registerForm" class="auth-form">
                         <div class="input-group">
                             <label for="registerUsername">Username</label>
                             <input type="text" id="registerUsername" required class="cute-input" minlength="3">
                         </div>
-                        
+
                         <div class="input-group">
                             <label for="registerEmail">Email Address</label>
                             <input type="email" id="registerEmail" required class="cute-input">
                         </div>
-                        
+
                         <div class="input-group">
                             <label for="registerPassword">Password</label>
-                            <input type="password" id="registerPassword" required class="cute-input" minlength="8">
+                            <div class="password-wrapper">
+                                <input type="password" id="registerPassword" required class="cute-input" minlength="8">
+                                <span class="toggle-password" data-target="registerPassword">👁️</span>
+                            </div>
                             <div id="registerPasswordStrength" class="password-strength"></div>
                         </div>
-                        
+
                         <div class="input-group">
                             <label for="confirmPassword">Confirm Password</label>
-                            <input type="password" id="confirmPassword" required class="cute-input">
+                            <div class="password-wrapper">
+                                <input type="password" id="confirmPassword" required class="cute-input">
+                                <span class="toggle-password" data-target="confirmPassword">👁️</span>
+                            </div>
                         </div>
-                        
+
                         <button type="submit" id="registerSubmit" class="cute-button primary auth-button" data-original-text="Create Account">
                             <span class="button-emoji">✨</span>
                             Create Account
                         </button>
                     </form>
-                    
+
                     <div class="auth-switch">
                         <p>Already have an account? <a href="#" id="showLogin" class="switch-link">Sign in here! 👋</a></p>
+                    </div>
+                </div>
+                <div id="forgotPasswordModal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>🔑 Reset Password</h3>
+                            <span class="close" id="closeForgotModal">&times;</span>
+                        </div>
+                        <div class="modal-body">
+                            <form id="forgotPasswordForm" class="auth-form">
+                                <div class="input-group">
+                                    <label for="resetEmail">📧 Email Address</label>
+                                    <input type="email" id="resetEmail" name="email" required
+                                           placeholder="Enter your registered email" class="cute-input">
+                                </div>
+                                <button type="submit" id="resetSubmit" class="cute-button primary auth-button" data-original-text="Send Reset Email">
+                                    <span class="button-emoji">📨</span>
+                                    Send Reset Email
+                                </button>
+                            </form>
+                            <div id="resetMessage" class="message" style="display: none;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <script src="js/auth.js"></script>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <span>Implemented by</span>
+            <a href="https://github.com/Lokesh071" target="_blank" class="github-link">
+                <i class="fab fa-github github-icon"></i>
+                <span>Lokesh071</span>
+            </a>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>

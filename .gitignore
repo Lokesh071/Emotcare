@@ -30,6 +30,12 @@ ENV/
 instance/
 *.db
 *.sqlite3
+*.db-shm
+*.db-wal
+
+# Session files
+temp_sessions/
+flask_session/
 
 # IDE
 .idea/
@@ -42,3 +48,25 @@ node_modules/
 
 # Logs
 *.log
+debug.log
+
+# API Keys and Secrets
+set_api_key.bat
+set_api_key.py
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Compiled files
+*.class
+
+# Wrangler (Cloudflare)
+wrangler.toml
+
+# Test files
+test_*.py

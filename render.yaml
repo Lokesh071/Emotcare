@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: emotcare
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: USE_POSTGRES
+        value: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: MAIL_USERNAME
+        value: faceauth1@gmail.com
+      - key: MAIL_PASSWORD
+        value: kvik axuf aeqy yhex
+      - key: MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_DEFAULT_SENDER
+        value: faceauth1@gmail.com
+
+databases:
+  - name: emotcare-db
+    databaseName: emotcare
+    user: emotcare_user
+    plan: free

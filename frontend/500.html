@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 Internal Server Error - EmotiCare</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="paper-background">
+        <div class="cute-card error-card">
+            <div class="card-decoration">
+                <span class="decoration-element rainbow">🌈</span>
+                <span class="decoration-element sun">☀️</span>
+                <span class="decoration-element flower">🌸</span>
+            </div>
+            <h1 class="error-title">500</h1>
+            <p class="error-message">Sorry! Something went wrong on our end.</p>
+            <a href="{{ url_for('dashboard') }}" class="cute-button primary">Go to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

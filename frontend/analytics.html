@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmotiCare - Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="paper-background">
+        <header class="cute-header">
+            <div class="logo-container">
+                <div class="cute-logo">
+                    <span class="emoji-face">📊</span>
+                    <h1>Analytics</h1>
+                </div>
+            </div>
+            <nav class="paper-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-button">Dashboard</a>
+                <a href="{{ url_for('profile') }}" class="nav-button">Profile</a>
+                <a href="#" onclick="logout()" class="nav-button logout-btn">Logout</a>
+            </nav>
+        </header>
+        <main class="main-content">
+            <section class="analytics-section">
+                <div class="cute-card analytics-card">
+                    <div class="card-decoration">
+                        <span class="decoration-element rainbow">🌈</span>
+                        <span class="decoration-element sun">☀️</span>
+                        <span class="decoration-element flower">🌸</span>
+                    </div>
+                    <h2 class="cute-title">Emotion Analytics</h2>
+                    <p class="cute-subtitle">Visualize your emotional trends and patterns.</p>
+
+                    <!-- Analytics Dashboard -->
+                    <div class="analytics-dashboard">
+                        <!-- Summary Cards -->
+                        <div class="analytics-summary">
+                            <div class="summary-card">
+                                <span class="summary-emoji">📊</span>
+                                <h3>Total Sessions</h3>
+                                <p id="totalSessions">Loading...</p>
+                            </div>
+                            <div class="summary-card">
+                                <span class="summary-emoji">😊</span>
+                                <h3>Most Common Emotion</h3>
+                                <p id="mostCommonEmotion">Loading...</p>
+                            </div>
+                            <div class="summary-card">
+                                <span class="summary-emoji">📈</span>
+                                <h3>This Week</h3>
+                                <p id="weeklyTrend">Loading...</p>
+                            </div>
+                        </div>
+
+                        <!-- Charts -->
+                        <div class="charts-container">
+                            <div class="chart-section">
+                                <h3>📈 Emotion Trends (Last 7 Days)</h3>
+                                <canvas id="trendsChart" width="400" height="200"></canvas>
+                            </div>
+                            <div class="chart-section">
+                                <h3>🥧 Emotion Distribution</h3>
+                                <canvas id="distributionChart" width="300" height="300"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="recent-activity">
+                            <h3>📝 Recent Emotion Records</h3>
+                            <div id="recentRecords" class="records-list">
+                                Loading recent activity...
+                            </div>
+                        </div>
+
+                        <!-- Insights -->
+                        <div class="insights-section">
+                            <h3>💡 Insights & Recommendations</h3>
+                            <div id="insights" class="insights-list">
+                                Analyzing your emotional patterns...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+</body>
+</html>
