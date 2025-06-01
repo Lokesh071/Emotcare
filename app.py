@@ -61,8 +61,8 @@ def create_app():
     app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
     app.config['MAIL_USE_TLS'] = True
-    app.config['MAIL_USERNAME'] = 'faceauth1@gmail.com'
-    app.config['MAIL_PASSWORD'] = 'kvik axuf aeqy yhex'
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'faceauth1@gmail.com')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'kvik axuf aeqy yhex')
     app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'faceauth1@gmail.com')
 
     db.init_app(app)

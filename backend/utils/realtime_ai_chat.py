@@ -37,12 +37,10 @@ class RealtimeAIChat:
         self.min_api_interval = 2.0
         self.rate_limit_errors = 0
         if GROQ_AVAILABLE:
-            groq_api_key = os.getenv('GROQ_API_KEY') or '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'
+            groq_api_key = os.getenv('GROQ_API_KEY')
             if groq_api_key and groq_api_key != 'gsk_demo_key_for_testing':
                 try:
-                    self.groq_client = Groq(
-                        api_key=groq_api_key,
-                    )
+                    self.groq_client = Groq(api_key=groq_api_key)
 
                     test_response = self.groq_client.chat.completions.create(
                         model="llama3-8b-8192",
