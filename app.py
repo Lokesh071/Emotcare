@@ -170,6 +170,9 @@ def create_app():
 
     return app
 
+# Create app instance for WSGI servers (Gunicorn, etc.)
+app = create_app()
+
 if __name__ == '__main__':
     print("🚀 Starting EmotiCare Application...")
     print("🧹 All sessions will be cleared for fresh start")
