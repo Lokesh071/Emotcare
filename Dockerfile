@@ -21,11 +21,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Copy and make startup script executable
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
 # Create necessary directories
 RUN mkdir -p temp_sessions
 
 # Expose port
 EXPOSE 8080
 
-# Start command - Use Railway's dynamic PORT variable
-CMD gunicorn --bind 0.0.0.0:${PORT:-8080} app:app
+# Use startup script
+CMD ["/start.sh"]
