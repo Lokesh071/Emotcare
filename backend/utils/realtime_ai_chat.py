@@ -4,6 +4,7 @@ import os
 import base64
 import io
 import time
+import inspect
 
 try:
     from groq import Groq
@@ -66,40 +67,52 @@ class RealtimeAIChat:
                     # Try to import and create client with more error handling
                     from groq import Groq
 
-                    # Create client with minimal parameters to avoid compatibility issues
-                    try:
-                        # Clear any environment variables that might interfere
-                        import os
-                        old_proxies = os.environ.get('proxies')
-                        if 'proxies' in os.environ:
-                            del os.environ['proxies']
-
-                        self.groq_client = Groq(api_key=groq_api_key)
-
-                        # Restore environment if it was set
-                        if old_proxies:
-                            os.environ['proxies'] = old_proxies
-
-                    except TypeError as te:
-                        print(f"🔄 TypeError creating Groq client: {te}")
-                        # Try creating with explicit parameters only
+                    # Create a safe Groq client creation function
+                    def create_groq_client_safe(api_key):
+                        """Safely create Groq client handling various version incompatibilities"""
                         try:
-                            # Use only the required parameter
-                            self.groq_client = Groq(api_key=groq_api_key, base_url=None)
-                        except TypeError:
-                            try:
-                                # Last resort: create with minimal signature
-                                import inspect
-                                sig = inspect.signature(Groq.__init__)
-                                params = list(sig.parameters.keys())
-                                print(f"🔍 Groq.__init__ parameters: {params}")
+                            # Method 1: Standard creation
+                            return Groq(api_key=api_key)
+                        except TypeError as e:
+                            if 'proxies' in str(e):
+                                print(f"🔄 Proxies argument issue detected: {e}")
+                                # Method 2: Try with explicit None for problematic args
+                                try:
+                                    return Groq(api_key=api_key, base_url=None)
+                                except:
+                                    pass
 
-                                # Create with only api_key
-                                kwargs = {'api_key': groq_api_key}
-                                self.groq_client = Groq(**kwargs)
-                            except Exception as e3:
-                                print(f"❌ All Groq creation methods failed: {e3}")
-                                self.groq_client = None
+                                # Method 3: Use only positional argument
+                                try:
+                                    # Some versions might expect positional args
+                                    return Groq(api_key)
+                                except:
+                                    pass
+
+                                # Method 4: Create with minimal kwargs
+                                try:
+                                    sig = inspect.signature(Groq.__init__)
+                                    valid_params = [p for p in sig.parameters.keys() if p != 'self']
+                                    print(f"🔍 Available Groq parameters: {valid_params}")
+
+                                    # Only use api_key if it's a valid parameter
+                                    if 'api_key' in valid_params:
+                                        return Groq(**{'api_key': api_key})
+                                    else:
+                                        print("❌ api_key not found in Groq constructor")
+                                        return None
+                                except Exception as e4:
+                                    print(f"❌ Inspection method failed: {e4}")
+                                    return None
+                            else:
+                                print(f"❌ Other TypeError: {e}")
+                                return None
+                        except Exception as e:
+                            print(f"❌ Unexpected error creating Groq client: {e}")
+                            return None
+
+                    # Use the safe creation function
+                    self.groq_client = create_groq_client_safe(groq_api_key)
 
                     # Only test if client was created successfully
                     if self.groq_client:
