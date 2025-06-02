@@ -67,36 +67,55 @@ class RealtimeAIChat:
                     print("🔧 Attempting to initialize Groq client directly...")
                     print(f"🔑 Using API key: {groq_api_key[:20]}...")
 
-                    # --- MODIFIED: Robust Initialization with Proxies Fix ---
-                    # This handles the Railway environment issue with unexpected 'proxies' argument
+                    # --- ULTIMATE FIX: Multiple approaches to bypass Railway proxies issue ---
                     from groq import Groq
+                    import sys
+                    import importlib
 
-                    # Method 1: Try to monkey-patch the Groq constructor
-                    original_init = Groq.__init__
-
-                    def safe_init(self, api_key=None, **kwargs):
-                        # Filter out problematic arguments
-                        safe_kwargs = {k: v for k, v in kwargs.items() if k not in ['proxies']}
-                        return original_init(self, api_key=api_key, **safe_kwargs)
+                    # Method 1: Clear all proxy-related environment variables
+                    proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
+                    original_proxy_values = {}
+                    for var in proxy_vars:
+                        if var in os.environ:
+                            original_proxy_values[var] = os.environ[var]
+                            del os.environ[var]
 
                     try:
-                        # Temporarily replace the constructor
-                        Groq.__init__ = safe_init
+                        # Method 2: Reload groq module to clear any cached proxy settings
+                        if 'groq' in sys.modules:
+                            importlib.reload(sys.modules['groq'])
+
+                        # Method 3: Create client with minimal parameters
                         self.groq_client = Groq(api_key=groq_api_key)
-                        print("✅ Groq client created with monkey-patch method")
-                    except Exception as patch_error:
-                        print(f"🔄 Monkey-patch failed: {patch_error}")
-                        # Try direct creation as fallback
+                        print("✅ Groq client created successfully with environment cleanup")
+
+                    except Exception as e1:
+                        print(f"🔄 Method 1 failed: {e1}")
+
+                        # Method 4: Try with explicit base_url to override defaults
                         try:
-                            self.groq_client = Groq(api_key=groq_api_key)
-                            print("✅ Groq client created with direct method")
-                        except Exception as direct_error:
-                            print(f"❌ Direct creation also failed: {direct_error}")
-                            self.groq_client = None
+                            self.groq_client = Groq(
+                                api_key=groq_api_key,
+                                base_url="https://api.groq.com/openai/v1"
+                            )
+                            print("✅ Groq client created with explicit base_url")
+                        except Exception as e2:
+                            print(f"🔄 Method 2 failed: {e2}")
+
+                            # Method 5: Manual HTTP client approach
+                            try:
+                                # Create a minimal working client
+                                self.groq_client = self._create_minimal_groq_client(groq_api_key)
+                                print("✅ Groq client created with minimal approach")
+                            except Exception as e3:
+                                print(f"❌ All methods failed: {e3}")
+                                self.groq_client = None
+
                     finally:
-                        # Always restore the original constructor
-                        Groq.__init__ = original_init
-                    # --- End Modification ---
+                        # Restore original proxy environment variables
+                        for var, value in original_proxy_values.items():
+                            os.environ[var] = value
+                    # --- End Ultimate Fix ---
 
                     # Test connection only if client was successfully created
                     if self.groq_client:
@@ -416,6 +435,84 @@ class RealtimeAIChat:
         # Add a generic follow-up
         response += " Remember, I'm here to support you."
         return response
+
+    def _create_minimal_groq_client(self, api_key: str):
+        """Create a minimal Groq client that bypasses proxy issues"""
+        try:
+            # Import here to avoid module-level issues
+            from groq import Groq
+
+            # Create with absolutely minimal configuration
+            class MinimalGroqClient:
+                def __init__(self, api_key):
+                    self.api_key = api_key
+                    self.base_url = "https://api.groq.com/openai/v1"
+
+                def chat_completions_create(self, **kwargs):
+                    # Use requests directly to bypass any proxy issues
+                    import requests
+                    import json
+
+                    headers = {
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    }
+
+                    data = {
+                        "model": kwargs.get("model", "llama3-8b-8192"),
+                        "messages": kwargs.get("messages", []),
+                        "max_tokens": kwargs.get("max_tokens", 150),
+                        "temperature": kwargs.get("temperature", 0.7)
+                    }
+
+                    response = requests.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=headers,
+                        json=data,
+                        timeout=30
+                    )
+
+                    if response.status_code == 200:
+                        result = response.json()
+                        # Create a simple response object
+                        class SimpleResponse:
+                            def __init__(self, data):
+                                self.choices = [SimpleChoice(data['choices'][0])]
+
+                        class SimpleChoice:
+                            def __init__(self, choice_data):
+                                self.message = SimpleMessage(choice_data['message'])
+
+                        class SimpleMessage:
+                            def __init__(self, message_data):
+                                self.content = message_data['content']
+
+                        return SimpleResponse(result)
+                    else:
+                        raise Exception(f"API request failed: {response.status_code} - {response.text}")
+
+            # Create the minimal client
+            minimal_client = MinimalGroqClient(api_key)
+
+            # Add the chat attribute to match expected interface
+            class ChatWrapper:
+                def __init__(self, client):
+                    self.completions = CompletionsWrapper(client)
+
+            class CompletionsWrapper:
+                def __init__(self, client):
+                    self.client = client
+
+                def create(self, **kwargs):
+                    return self.client.chat_completions_create(**kwargs)
+
+            minimal_client.chat = ChatWrapper(minimal_client)
+
+            return minimal_client
+
+        except Exception as e:
+            print(f"❌ Failed to create minimal Groq client: {e}")
+            return None
 
 
 
