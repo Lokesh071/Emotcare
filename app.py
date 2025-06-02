@@ -249,6 +249,72 @@ def create_app():
 
         return jsonify(results)
 
+    # --- Email Configuration Test Route --- #
+    @app.route('/test-email')
+    def test_email():
+        """Test email configuration and SMTP settings."""
+        results = {
+            'email_config': {},
+            'smtp_test': {},
+            'environment_variables': {},
+            'error_messages': [],
+            'debug_logs': []
+        }
+
+        # Check email configuration
+        results['email_config'] = {
+            'MAIL_SERVER': app.config.get('MAIL_SERVER'),
+            'MAIL_PORT': app.config.get('MAIL_PORT'),
+            'MAIL_USE_TLS': app.config.get('MAIL_USE_TLS'),
+            'MAIL_USE_SSL': app.config.get('MAIL_USE_SSL'),
+            'MAIL_USERNAME': app.config.get('MAIL_USERNAME'),
+            'MAIL_PASSWORD': '***SET***' if app.config.get('MAIL_PASSWORD') else 'NOT_SET',
+            'MAIL_DEFAULT_SENDER': app.config.get('MAIL_DEFAULT_SENDER')
+        }
+
+        # Check environment variables
+        results['environment_variables'] = {
+            'MAIL_SERVER': os.environ.get('MAIL_SERVER', 'NOT_SET'),
+            'MAIL_PORT': os.environ.get('MAIL_PORT', 'NOT_SET'),
+            'MAIL_USE_TLS': os.environ.get('MAIL_USE_TLS', 'NOT_SET'),
+            'MAIL_USERNAME': os.environ.get('MAIL_USERNAME', 'NOT_SET'),
+            'MAIL_PASSWORD': '***SET***' if os.environ.get('MAIL_PASSWORD') else 'NOT_SET',
+            'MAIL_DEFAULT_SENDER': os.environ.get('MAIL_DEFAULT_SENDER', 'NOT_SET')
+        }
+
+        # Check if SMTP credentials are configured
+        mail_username = app.config.get('MAIL_USERNAME')
+        mail_password = app.config.get('MAIL_PASSWORD')
+
+        if not mail_username or not mail_password:
+            results['error_messages'].append("SMTP credentials not configured")
+            results['debug_logs'].append("❌ MAIL_USERNAME or MAIL_PASSWORD not set")
+        else:
+            results['debug_logs'].append("✅ SMTP credentials are configured")
+
+            # Test SMTP connection
+            try:
+                import smtplib
+                smtp_server = app.config.get('MAIL_SERVER', 'smtp.gmail.com')
+                smtp_port = app.config.get('MAIL_PORT', 587)
+
+                results['debug_logs'].append(f"🔧 Testing SMTP connection to {smtp_server}:{smtp_port}")
+
+                with smtplib.SMTP(smtp_server, smtp_port) as server:
+                    server.starttls()
+                    server.login(mail_username, mail_password)
+
+                results['smtp_test']['success'] = True
+                results['debug_logs'].append("✅ SMTP connection test successful")
+
+            except Exception as e:
+                results['smtp_test']['success'] = False
+                results['smtp_test']['error'] = str(e)
+                results['error_messages'].append(f"SMTP connection failed: {e}")
+                results['debug_logs'].append(f"❌ SMTP connection failed: {e}")
+
+        return jsonify(results)
+
     return app
 
 # Create app instance for WSGI servers (Gunicorn, Waitress, etc.)
