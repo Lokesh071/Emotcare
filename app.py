@@ -175,17 +175,18 @@ def create_app():
 
     @app.route('/test-groq')
     def test_groq():
-        """Test Groq API functionality"""
+        """Test Groq API functionality with detailed debugging"""
         import os
         import asyncio
-        from backend.utils.realtime_ai_chat import RealtimeAIChat
 
         results = {
             'environment_check': {},
+            'groq_library_check': {},
             'groq_client_initialized': False,
             'basic_api_test': False,
             'chat_system_test': False,
-            'error_messages': []
+            'error_messages': [],
+            'debug_logs': []
         }
 
         # Check environment variables
@@ -197,13 +198,54 @@ def create_app():
             'PORT': os.getenv('PORT')
         }
 
+        # Test Groq library import
         try:
-            # Test AI chat initialization
+            from groq import Groq
+            results['groq_library_check']['import_success'] = True
+            results['debug_logs'].append("✅ Groq library imported successfully")
+
+            # Test direct Groq client creation
+            groq_api_key = os.getenv('GROQ_API_KEY')
+            if groq_api_key:
+                results['debug_logs'].append(f"🔑 Using API key: {groq_api_key[:20]}...")
+
+                try:
+                    # Direct client test
+                    test_client = Groq(api_key=groq_api_key)
+                    results['debug_logs'].append("✅ Groq client created successfully")
+
+                    # Test API call
+                    test_response = test_client.chat.completions.create(
+                        model="llama3-8b-8192",
+                        messages=[{"role": "user", "content": "Hello"}],
+                        max_tokens=5
+                    )
+                    results['groq_library_check']['direct_api_test'] = True
+                    results['groq_library_check']['test_response'] = test_response.choices[0].message.content
+                    results['debug_logs'].append("✅ Direct API call successful")
+
+                except Exception as e:
+                    results['groq_library_check']['direct_test_error'] = str(e)
+                    results['debug_logs'].append(f"❌ Direct Groq test failed: {e}")
+            else:
+                results['debug_logs'].append("❌ No GROQ_API_KEY found")
+
+        except ImportError as e:
+            results['groq_library_check']['import_success'] = False
+            results['groq_library_check']['import_error'] = str(e)
+            results['debug_logs'].append(f"❌ Groq library import failed: {e}")
+
+        # Test RealtimeAIChat initialization
+        try:
+            from backend.utils.realtime_ai_chat import RealtimeAIChat
+            results['debug_logs'].append("✅ RealtimeAIChat imported")
+
             ai_chat = RealtimeAIChat()
             results['groq_client_initialized'] = bool(ai_chat.groq_client)
+            results['debug_logs'].append(f"🤖 RealtimeAIChat groq_client: {bool(ai_chat.groq_client)}")
 
             if ai_chat.groq_client:
-                # Test basic API call
+                # Test basic API call through RealtimeAIChat
                 try:
                     response = ai_chat.groq_client.chat.completions.create(
                         model="llama3-8b-8192",
@@ -212,27 +254,18 @@ def create_app():
                     )
                     results['basic_api_test'] = True
                     results['test_response'] = response.choices[0].message.content
-
-                    # Test the actual chat system
-                    try:
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        chat_response = loop.run_until_complete(
-                            ai_chat.get_response("Hello, I'm feeling happy", "happy")
-                        )
-                        loop.close()
-                        results['chat_system_test'] = True
-                        results['chat_response'] = chat_response
-                    except Exception as e:
-                        results['error_messages'].append(f"Chat system test failed: {str(e)}")
+                    results['debug_logs'].append("✅ RealtimeAIChat API call successful")
 
                 except Exception as e:
                     results['error_messages'].append(f"API call failed: {str(e)}")
+                    results['debug_logs'].append(f"❌ RealtimeAIChat API call failed: {e}")
             else:
-                results['error_messages'].append("Groq client not initialized")
+                results['error_messages'].append("Groq client not initialized in RealtimeAIChat")
+                results['debug_logs'].append("❌ RealtimeAIChat groq_client is None")
 
         except Exception as e:
-            results['error_messages'].append(f"Initialization failed: {str(e)}")
+            results['error_messages'].append(f"RealtimeAIChat initialization failed: {str(e)}")
+            results['debug_logs'].append(f"❌ RealtimeAIChat initialization failed: {e}")
 
         return results
 
