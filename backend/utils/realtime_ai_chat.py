@@ -294,6 +294,75 @@ class RealtimeAIChat:
         self.conversation_history.append({'user': user_message, 'ai': fallback_response})
         return fallback_response
 
+    def get_ai_response_sync(self, user_message: str, emotion: str = None, context: dict = None) -> str:
+        """
+        Synchronous method to get AI response - specifically for the web interface
+        This method directly uses the working Groq client without async complications
+        """
+        print(f"🤖 get_ai_response_sync called with message: '{user_message}', emotion: {emotion}")
+
+        if not user_message.strip():
+            return "I'm here to listen. What would you like to talk about?"
+
+        # Build context for the AI
+        emotion_context = ""
+        if emotion and emotion != 'neutral':
+            emotion_context = f"The user is currently feeling {emotion}. "
+
+        # Create messages for the AI
+        system_prompt = f"""You are EmotiCare AI, a compassionate emotional support assistant. {emotion_context}Provide empathetic, supportive responses that acknowledge the user's feelings and offer gentle guidance. Keep responses concise (1-2 sentences) and warm."""
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ]
+
+        # Add conversation history for context (last 3 exchanges)
+        if self.conversation_history:
+            for exchange in self.conversation_history[-3:]:
+                messages.insert(-1, {"role": "user", "content": exchange['user']})
+                messages.insert(-1, {"role": "assistant", "content": exchange['ai']})
+
+        # Try Groq first if available
+        if self.groq_client:
+            try:
+                print("🚀 Using Groq AI for real-time response")
+
+                # Rate limiting
+                current_time = time.time()
+                time_since_last_call = current_time - self.last_api_call
+                if time_since_last_call < self.min_api_interval:
+                    wait_time = self.min_api_interval - time_since_last_call
+                    print(f"⏱️ Rate limiting: waiting {wait_time:.1f}s")
+                    time.sleep(wait_time)
+
+                self.last_api_call = time.time()
+
+                response = self.groq_client.chat.completions.create(
+                    model="llama3-8b-8192",
+                    messages=messages,
+                    max_tokens=150,
+                    temperature=0.7
+                )
+
+                ai_response = response.choices[0].message.content.strip()
+                print(f"✅ Groq AI response: {ai_response[:100]}...")
+
+                # Add to conversation history
+                self.conversation_history.append({'user': user_message, 'ai': ai_response})
+
+                return ai_response
+
+            except Exception as e:
+                print(f"❌ Groq API error in sync method: {e}")
+                # Fall through to fallback
+
+        # Fallback to rule-based response
+        print("🔄 Using rule-based fallback response")
+        fallback_response = self._get_fallback_response(user_message, emotion, context or {})
+        self.conversation_history.append({'user': user_message, 'ai': fallback_response})
+        return fallback_response
+
     async def check_content_safety(self, message: str) -> Dict:
         """
         Use meta-llama/llama-prompt-guard-2-86m to check content safety

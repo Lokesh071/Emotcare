@@ -574,22 +574,44 @@ def ai_chat():
 
         # Get response from real-time AI chat system
         try:
-            # Use async real-time AI chat for better responses
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            chat_response = loop.run_until_complete(
-                realtime_ai_chat.get_response(
+            # Use the working Groq AI chat system directly (no async loop needed)
+            print(f"🤖 Getting AI response for message: '{user_message}' with emotion: {detected_emotion}")
+
+            # Check if Groq is available and working
+            if hasattr(realtime_ai_chat, 'groq_client') and realtime_ai_chat.groq_client:
+                print("✅ Groq client is available, using real AI responses")
+
+                # Use the sync method that works with our fixed Groq client
+                ai_response = realtime_ai_chat.get_ai_response_sync(
                     user_message,
                     detected_emotion,
-                    is_first_emotion=is_first_emotion,
-                    emotion_change=emotion_change,
-                    previous_emotion=previous_emotion,
-                    chat_continues_after_detection=chat_continues_after_detection
+                    {
+                        'is_first_emotion': is_first_emotion,
+                        'emotion_change': emotion_change,
+                        'previous_emotion': previous_emotion,
+                        'chat_continues_after_detection': chat_continues_after_detection
+                    }
                 )
-            )
-            loop.close()
+
+                # Format response to match expected structure
+                chat_response = {
+                    'response': ai_response,
+                    'detected_emotion': detected_emotion,
+                    'ai_service': 'groq',
+                    'is_ai_response': True,
+                    'follow_up': None,
+                    'coping_strategy': None,
+                    'suggestions': []
+                }
+                print(f"✅ Got Groq AI response: {ai_response[:100]}...")
+
+            else:
+                print("❌ Groq client not available, falling back to rule-based")
+                raise Exception("Groq client not available")
+
         except Exception as ai_error:
-            print(f"Real-time AI error: {ai_error}")
+            print(f"❌ Real-time AI error: {ai_error}")
+            print("🔄 Falling back to rule-based system")
             # Fallback to rule-based system
             chat_response = emotion_chat.get_response(
                 user_message,
@@ -598,6 +620,9 @@ def ai_chat():
                 emotion_change,
                 previous_emotion
             )
+            # Mark as rule-based response
+            chat_response['ai_service'] = 'rule_based'
+            chat_response['is_ai_response'] = False
 
         # Save chat interaction to database if possible
         try:
