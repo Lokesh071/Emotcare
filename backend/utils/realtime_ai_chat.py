@@ -38,14 +38,19 @@ class RealtimeAIChat:
         self.rate_limit_errors = 0
         if GROQ_AVAILABLE:
             groq_api_key = os.getenv('GROQ_API_KEY')
+            print(f"🔍 GROQ_API_KEY from environment: {groq_api_key[:20] + '...' if groq_api_key else 'NOT_SET'}")
+
             # Fallback to hardcoded key if environment variable not set
             if not groq_api_key:
                 groq_api_key = "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"
+                print("🔄 Using hardcoded fallback API key")
 
             if groq_api_key and groq_api_key != 'gsk_demo_key_for_testing':
                 try:
+                    print("🔧 Attempting to initialize Groq client...")
                     self.groq_client = Groq(api_key=groq_api_key)
 
+                    print("🧪 Testing Groq API connection...")
                     test_response = self.groq_client.chat.completions.create(
                         model="llama3-8b-8192",
                         messages=[{"role": "user", "content": "Hello"}],
@@ -57,9 +62,13 @@ class RealtimeAIChat:
                     print(f"🧪 Test response: {test_response.choices[0].message.content}")
                 except Exception as e:
                     print(f"❌ Failed to initialize Groq client: {e}")
+                    print(f"❌ Error type: {type(e).__name__}")
+                    print(f"❌ Error details: {str(e)}")
                     self.groq_client = None
             else:
                 print("💡 Set GROQ_API_KEY environment variable for real AI responses")
+        else:
+            print("❌ Groq library not available")
 
         if OPENAI_AVAILABLE:
             openai_api_key = os.getenv('OPENAI_API_KEY')

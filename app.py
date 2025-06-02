@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 from flask import Flask, render_template, session, redirect, url_for
 from flask_bcrypt import Bcrypt
 from flask_mail import Mail
@@ -172,13 +177,24 @@ def create_app():
     def test_groq():
         """Test Groq API functionality"""
         import os
+        import asyncio
         from backend.utils.realtime_ai_chat import RealtimeAIChat
 
         results = {
-            'groq_api_key_set': bool(os.getenv('GROQ_API_KEY')),
+            'environment_check': {},
             'groq_client_initialized': False,
             'basic_api_test': False,
+            'chat_system_test': False,
             'error_messages': []
+        }
+
+        # Check environment variables
+        results['environment_check'] = {
+            'GROQ_API_KEY_set': bool(os.getenv('GROQ_API_KEY')),
+            'GROQ_API_KEY_value': os.getenv('GROQ_API_KEY', 'NOT_SET')[:20] + '...' if os.getenv('GROQ_API_KEY') else 'NOT_SET',
+            'USE_POSTGRES': os.getenv('USE_POSTGRES'),
+            'FLASK_ENV': os.getenv('FLASK_ENV'),
+            'PORT': os.getenv('PORT')
         }
 
         try:
@@ -196,6 +212,20 @@ def create_app():
                     )
                     results['basic_api_test'] = True
                     results['test_response'] = response.choices[0].message.content
+
+                    # Test the actual chat system
+                    try:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        chat_response = loop.run_until_complete(
+                            ai_chat.get_response("Hello, I'm feeling happy", "happy")
+                        )
+                        loop.close()
+                        results['chat_system_test'] = True
+                        results['chat_response'] = chat_response
+                    except Exception as e:
+                        results['error_messages'].append(f"Chat system test failed: {str(e)}")
+
                 except Exception as e:
                     results['error_messages'].append(f"API call failed: {str(e)}")
             else:
