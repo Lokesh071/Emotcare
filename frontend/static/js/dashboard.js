@@ -1,15 +1,65 @@
 let emotionDetector = null;
+let dashboardChart = null;
+let refreshInterval = null;
+let isRealTimeEnabled = true;
 
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeDashboard();
     setupEventListeners();
-    initializeChart();
+    await loadRealTimeDashboard();
+    startRealTimeUpdates();
 });
+
 async function initializeDashboard() {
     try {
         emotionDetector = new EmotionDetector();
+        console.log('✅ Dashboard initialized successfully');
     } catch (error) {
+        console.error('❌ Error initializing dashboard:', error);
         showMessage('Error initializing dashboard components', 'error');
+    }
+}
+
+async function loadRealTimeDashboard() {
+    console.log('🔄 Loading real-time dashboard data...');
+
+    // Add visual feedback
+    addUpdateAnimation();
+
+    try {
+        await Promise.all([
+            updateRecentEmotions(),
+            updateEmotionTrends(),
+            updateDashboardStats()
+        ]);
+        console.log('✅ Dashboard data loaded successfully');
+    } catch (error) {
+        console.error('❌ Error loading dashboard data:', error);
+        showMessage('Error loading dashboard data', 'error');
+    }
+}
+
+function startRealTimeUpdates() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+
+    // Update dashboard every 30 seconds
+    refreshInterval = setInterval(async () => {
+        if (isRealTimeEnabled) {
+            console.log('🔄 Auto-refreshing dashboard...');
+            await loadRealTimeDashboard();
+        }
+    }, 30000);
+
+    console.log('✅ Real-time updates started (30s interval)');
+}
+
+function stopRealTimeUpdates() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+        console.log('⏹️ Real-time updates stopped');
     }
 }
 function setupEventListeners() {
@@ -355,37 +405,316 @@ function showMessage(message, type) {
     }, 3000);
 }
 
-// Initialize chart
-function initializeChart() {
-    const chartCanvas = document.getElementById('emotionTrendsChart');
-    if (chartCanvas) {
-        const ctx = chartCanvas.getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [{
-                    label: 'Happiness',
-                    data: [3, 4, 2, 5, 4, 3, 5],
-                    borderColor: '#ffb347',
-                    backgroundColor: 'rgba(255, 179, 71, 0.2)',
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { beginAtZero: true, max: 5 }
-                }
+// Real-time data fetching functions
+async function updateRecentEmotions() {
+    try {
+        const response = await fetch('/api/emotion-history?limit=5');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.records) {
+                displayRecentEmotions(data.records);
+            } else {
+                console.warn('No recent emotions data available');
+                displayDefaultRecentEmotions();
             }
-        });
+        } else {
+            throw new Error('Failed to fetch recent emotions');
+        }
+    } catch (error) {
+        console.error('Error fetching recent emotions:', error);
+        displayDefaultRecentEmotions();
     }
 }
+
+async function updateEmotionTrends() {
+    try {
+        const response = await fetch('/api/emotion-analytics?days=7');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.analytics) {
+                updateTrendsChart(data.analytics);
+            } else {
+                console.warn('No analytics data available');
+                initializeDefaultChart();
+            }
+        } else {
+            throw new Error('Failed to fetch emotion analytics');
+        }
+    } catch (error) {
+        console.error('Error fetching emotion trends:', error);
+        initializeDefaultChart();
+    }
+}
+
+async function updateDashboardStats() {
+    try {
+        const response = await fetch('/api/emotion-analytics?days=30');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.analytics) {
+                displayDashboardStats(data.analytics);
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+    }
+}
+
+function displayRecentEmotions(records) {
+    const recentEmotionsElement = document.getElementById('recentEmotions');
+    if (!recentEmotionsElement) return;
+
+    const emotionEmojis = {
+        happy: '😊',
+        sad: '😢',
+        angry: '😠',
+        stressed: '😰',
+        anxious: '😟',
+        peaceful: '😌',
+        depressed: '😔',
+        neutral: '😐'
+    };
+
+    if (records.length === 0) {
+        recentEmotionsElement.innerHTML = '<li>No emotions detected yet</li>';
+        return;
+    }
+
+    const emotionItems = records.map(record => {
+        const emoji = emotionEmojis[record.emotion] || '😐';
+        const timeAgo = getTimeAgo(new Date(record.timestamp));
+        return `<li>${emoji} ${record.emotion.charAt(0).toUpperCase() + record.emotion.slice(1)} - ${timeAgo}</li>`;
+    }).join('');
+
+    recentEmotionsElement.innerHTML = emotionItems;
+}
+
+function displayDefaultRecentEmotions() {
+    const recentEmotionsElement = document.getElementById('recentEmotions');
+    if (recentEmotionsElement) {
+        recentEmotionsElement.innerHTML = `
+            <li>😊 Happy - Today</li>
+            <li>😐 Neutral - Yesterday</li>
+            <li>😢 Sad - 2 days ago</li>
+        `;
+    }
+}
+
+function getTimeAgo(date) {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+}
+
+function updateTrendsChart(analytics) {
+    const chartCanvas = document.getElementById('emotionTrendsChart');
+    if (!chartCanvas) return;
+
+    const ctx = chartCanvas.getContext('2d');
+
+    // Destroy existing chart if it exists
+    if (dashboardChart) {
+        dashboardChart.destroy();
+    }
+
+    // Prepare data from analytics
+    const dailyTrends = analytics.daily_trends || {};
+    const dates = Object.keys(dailyTrends).sort().slice(-7); // Last 7 days
+
+    const emotionColors = {
+        happy: '#FFD93D',
+        sad: '#74b9ff',
+        angry: '#fd79a8',
+        stressed: '#fdcb6e',
+        anxious: '#a29bfe',
+        peaceful: '#55efc4',
+        depressed: '#636e72',
+        neutral: '#95a5a6'
+    };
+
+    // Get the most common emotions to display
+    const emotionFreq = analytics.emotion_frequency || [];
+    const topEmotions = emotionFreq.slice(0, 3).map(item => item.emotion);
+
+    if (topEmotions.length === 0) {
+        initializeDefaultChart();
+        return;
+    }
+
+    const datasets = topEmotions.map(emotion => ({
+        label: emotion.charAt(0).toUpperCase() + emotion.slice(1),
+        data: dates.map(date => {
+            const dayData = dailyTrends[date] || {};
+            return dayData[emotion]?.count || 0;
+        }),
+        borderColor: emotionColors[emotion] || '#95a5a6',
+        backgroundColor: (emotionColors[emotion] || '#95a5a6') + '20',
+        tension: 0.4,
+        fill: false
+    }));
+
+    const labels = dates.map(date => {
+        const d = new Date(date);
+        return d.toLocaleDateString('en-US', { weekday: 'short' });
+    });
+
+    dashboardChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: datasets
+        },
+        options: {
+            responsive: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: { fontSize: 10 }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+}
+
+function initializeDefaultChart() {
+    const chartCanvas = document.getElementById('emotionTrendsChart');
+    if (!chartCanvas) return;
+
+    const ctx = chartCanvas.getContext('2d');
+
+    if (dashboardChart) {
+        dashboardChart.destroy();
+    }
+
+    dashboardChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Emotions',
+                data: [0, 0, 0, 0, 0, 0, 0],
+                borderColor: '#ffb347',
+                backgroundColor: 'rgba(255, 179, 71, 0.2)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, max: 5 }
+            }
+        }
+    });
+}
+
+function displayDashboardStats(analytics) {
+    // Update achievements based on real data
+    const achievementsElement = document.querySelector('.stat-card:nth-child(3) ul');
+    if (achievementsElement && analytics.emotion_frequency) {
+        const totalSessions = analytics.emotion_frequency.reduce((sum, item) => sum + item.count, 0);
+        const uniqueDays = Object.keys(analytics.daily_trends || {}).length;
+
+        let achievements = [];
+
+        if (totalSessions >= 1) achievements.push('🎯 First Emotion Detected');
+        if (totalSessions >= 10) achievements.push('🌟 10 Sessions Completed');
+        if (totalSessions >= 50) achievements.push('🏆 50 Sessions Milestone');
+        if (uniqueDays >= 7) achievements.push('📅 7-Day Streak');
+        if (uniqueDays >= 30) achievements.push('🗓️ Monthly Tracker');
+
+        if (achievements.length === 0) {
+            achievements.push('🌱 Getting Started');
+        }
+
+        achievementsElement.innerHTML = achievements.map(achievement => `<li>${achievement}</li>`).join('');
+    }
+}
+
+// Enhanced emotion detection integration
+function onEmotionDetected(emotion, confidence) {
+    console.log(`🎯 Emotion detected: ${emotion} (${confidence})`);
+
+    // Trigger immediate dashboard update when new emotion is detected
+    setTimeout(async () => {
+        console.log('🔄 Updating dashboard after emotion detection...');
+        await loadRealTimeDashboard();
+    }, 2000); // Small delay to ensure the emotion is saved to database
+}
+
+// Enhanced show dashboard function with real-time loading
+async function showDashboard() {
+    document.querySelector('.emotion-detection-section').style.display = 'block';
+    document.querySelector('.dashboard-section').style.display = 'block';
+    document.getElementById('settingsSection').style.display = 'none';
+
+    document.getElementById('dashboardNav').classList.add('active');
+    document.getElementById('settingsNav').classList.remove('active');
+
+    // Refresh dashboard data when switching to dashboard view
+    await loadRealTimeDashboard();
+}
+
+// Add real-time toggle control
+function toggleRealTimeUpdates() {
+    isRealTimeEnabled = !isRealTimeEnabled;
+
+    const statusDot = document.querySelector('.status-dot');
+    const statusText = document.querySelector('.status-text');
+    const toggleBtn = document.getElementById('realTimeToggle');
+
+    if (isRealTimeEnabled) {
+        startRealTimeUpdates();
+        showMessage('Real-time updates enabled', 'success');
+
+        // Update UI
+        if (statusDot) statusDot.classList.remove('inactive');
+        if (statusText) statusText.textContent = 'Real-time updates active';
+        if (toggleBtn) toggleBtn.textContent = '⏸️';
+    } else {
+        stopRealTimeUpdates();
+        showMessage('Real-time updates disabled', 'info');
+
+        // Update UI
+        if (statusDot) statusDot.classList.add('inactive');
+        if (statusText) statusText.textContent = 'Real-time updates paused';
+        if (toggleBtn) toggleBtn.textContent = '▶️';
+    }
+}
+
+// Add visual feedback when updating
+function addUpdateAnimation() {
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach(card => {
+        card.classList.add('updating');
+        setTimeout(() => {
+            card.classList.remove('updating');
+        }, 500);
+    });
+}
+
+// Cleanup function for when user leaves the page
+window.addEventListener('beforeunload', () => {
+    stopRealTimeUpdates();
+});
 
 // Make functions available globally for HTML onclick handlers
 window.showDashboard = showDashboard;
 window.showSettings = showSettings;
 window.logout = logout;
+window.toggleRealTimeUpdates = toggleRealTimeUpdates;
+window.onEmotionDetected = onEmotionDetected;

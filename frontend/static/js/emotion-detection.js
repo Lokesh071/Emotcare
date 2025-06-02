@@ -398,6 +398,12 @@ class EmotionDetector {
             this.sessionFirstEmotion = result.emotion;
         }
 
+        // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+        // Call the dashboard update function if it exists
+        if (typeof window.onEmotionDetected === 'function') {
+            window.onEmotionDetected(result.emotion, result.confidence);
+        }
+
         // Show emotion result with special styling for first emotion
         const badgeClass = isFirstEmotion ? `${result.emotion} first-emotion` : result.emotion;
         const badgeTitle = isFirstEmotion ? 'First Emotion Detected!' : 'Current Emotion';
