@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-from flask import Flask, render_template, session, redirect, url_for
+from flask import Flask, render_template, session, redirect, url_for, jsonify
 from flask_bcrypt import Bcrypt
 from flask_mail import Mail
 from flask_cors import CORS
@@ -31,292 +31,234 @@ def create_app():
     use_postgres = os.environ.get('USE_POSTGRES', 'false').lower() == 'true'
 
     if database_url:
-        # Production: Use provided DATABASE_URL (Render will provide this)
+        # Production: Use provided DATABASE_URL (Render/Railway will provide this)
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
         print("🔧 Using production database from DATABASE_URL")
     elif use_postgres:
-        # Development with PostgreSQL
-        postgres_uri = 'postgresql://neondb_owner:npg_xjCwiJ2t9pLq@ep-orange-cake-a1jy3myz-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require'
+        # Development with PostgreSQL (Example URI, replace if needed)
+        postgres_uri = os.environ.get('POSTGRES_URI', 'postgresql://user:password@host:port/dbname')
         app.config['SQLALCHEMY_DATABASE_URI'] = postgres_uri
         print("🔧 Using PostgreSQL database for development")
     else:
         # Development with SQLite
-        sqlite_uri = 'sqlite:///emotcare_local.db'
+        sqlite_db_path = os.path.join(app.instance_path, 'emotcare_local.db')
+        os.makedirs(app.instance_path, exist_ok=True)
+        sqlite_uri = f'sqlite:///{sqlite_db_path}'
         app.config['SQLALCHEMY_DATABASE_URI'] = sqlite_uri
-        print("🔧 Using SQLite database for development")
+        print(f"🔧 Using SQLite database for development at {sqlite_uri}")
+
     app.config['REDIS_URL'] = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
-    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '')
-    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
+
+    # Session Configuration (Filesystem recommended for simplicity unless Redis is required)
     try:
         app.config['SESSION_TYPE'] = 'filesystem'
         app.config['SESSION_PERMANENT'] = False
         app.config['SESSION_USE_SIGNER'] = True
         app.config['SESSION_FILE_DIR'] = os.path.join(os.getcwd(), 'temp_sessions')
-        app.config['SESSION_FILE_THRESHOLD'] = 100
-
+        app.config['SESSION_FILE_THRESHOLD'] = 100 # Number of sessions before cleanup
         os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
-
-        print("✅ Filesystem session configuration set (reliable)")
+        print("✅ Filesystem session configuration set.")
     except Exception as e:
-        print(f"⚠️ Session configuration issue: {e}")
+        print(f"⚠️ Filesystem session configuration issue: {e}. Falling back to null session.")
         app.config['SESSION_TYPE'] = 'null'
-        print("⚠️ Using in-memory sessions as fallback")
+
+    # Mail Configuration
     app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-    app.config['MAIL_USE_TLS'] = True
-    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'faceauth1@gmail.com')
-    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'kvik axuf aeqy yhex')
-    app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'faceauth1@gmail.com')
+    app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+    app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'false').lower() == 'true'
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+    app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', app.config['MAIL_USERNAME'])
 
+    # Initialize extensions
     db.init_app(app)
     bcrypt = Bcrypt(app)
     mail = Mail(app)
-    CORS(app)
+    CORS(app) # Enable CORS for all routes
     Session(app)
 
+    # Initialize Email Service
     email_service = EmailService(mail)
 
+    # Register Blueprints
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(emotion_bp, url_prefix='/api')
+
+    # Create database tables if they don't exist
     database_connected = False
     try:
         with app.app_context():
             db.create_all()
             database_connected = True
-            print("✅ Database tables created successfully")
+            print("✅ Database tables checked/created successfully")
     except Exception as e:
-        print(f"⚠️ Database connection issue: {e}")
-        print("⚠️ Continuing without database - using mock data for testing")
+        print(f"⚠️ Database connection/setup issue: {e}")
+        print("⚠️ Application might run with limited functionality.")
 
     app.config['DATABASE_CONNECTED'] = database_connected
 
-    print("✅ Session clearing configured for fresh start")
-
-    @app.route('/clear-startup-sessions')
-    def clear_startup_sessions():
-        session.clear()
-        return redirect(url_for('index'))
+    # --- Routes --- #
 
     @app.route('/')
     def index():
         if 'user_id' in session:
             try:
+                # Check if user exists and is verified
                 user = db.session.get(User, session['user_id'])
                 if user and user.is_verified:
                     return redirect(url_for('dashboard'))
-            except:
+                else:
+                    session.clear() # Clear invalid session
+            except Exception as e:
+                print(f"Error checking session user: {e}")
                 session.clear()
-
+        # If no valid session, show login
         return render_template('login.html')
 
     @app.route('/dashboard')
     def dashboard():
         if 'user_id' not in session:
             return redirect(url_for('index'))
-
         try:
             user = db.session.get(User, session['user_id'])
             if not user or not user.is_verified:
+                session.clear()
                 return redirect(url_for('index'))
             return render_template('dashboard.html', user=user)
-        except:
-            class MockUser:
-                def __init__(self):
-                    self.username = "Test User"
-                    self.email = "test@example.com"
-                    self.id = 1
+        except Exception as e:
+            print(f"Error loading dashboard: {e}")
+            # Fallback for DB issues during demo/testing
+            class MockUser: username, email, id = "Test User", "test@example.com", 1
             return render_template('dashboard.html', user=MockUser())
 
     @app.route('/analytics')
     def analytics():
         if 'user_id' not in session:
             return redirect(url_for('index'))
-
         try:
             user = db.session.get(User, session['user_id'])
             if not user or not user.is_verified:
+                session.clear()
                 return redirect(url_for('index'))
             return render_template('analytics.html', user=user)
-        except:
-            class MockUser:
-                def __init__(self):
-                    self.username = "Test User"
-                    self.email = "test@example.com"
-                    self.id = 1
+        except Exception as e:
+            print(f"Error loading analytics: {e}")
+            class MockUser: username, email, id = "Test User", "test@example.com", 1
             return render_template('analytics.html', user=MockUser())
 
     @app.route('/profile')
     def profile():
         if 'user_id' not in session:
             return redirect(url_for('index'))
-
         try:
             user = db.session.get(User, session['user_id'])
             if not user or not user.is_verified:
+                session.clear()
                 return redirect(url_for('index'))
             return render_template('profile.html', user=user)
-        except:
-            class MockUser:
-                def __init__(self):
-                    self.username = "Test User"
-                    self.email = "test@example.com"
-                    self.id = 1
+        except Exception as e:
+            print(f"Error loading profile: {e}")
+            class MockUser: username, email, id = "Test User", "test@example.com", 1
             return render_template('profile.html', user=MockUser())
 
+    # --- Error Handlers --- #
     @app.errorhandler(404)
     def not_found(error):
         return render_template('404.html'), 404
 
     @app.errorhandler(500)
     def internal_error(error):
+        # Log the error for debugging
+        print(f"Internal Server Error: {error}")
+        db.session.rollback() # Rollback potentially failed DB transactions
         return render_template('500.html'), 500
 
+    # --- Groq Test Route (Modified) --- #
     @app.route('/test-groq')
     def test_groq():
-        """Test Groq API functionality with detailed debugging"""
+        """Test Groq API functionality using the fixed RealtimeAIChat class."""
         import os
         import asyncio
+        # *** MODIFIED: Import the fixed version ***
+        from backend.utils.realtime_ai_chat import RealtimeAIChat, GROQ_AVAILABLE
 
         results = {
             'environment_check': {},
-            'groq_library_check': {},
-            'groq_client_initialized': False,
-            'basic_api_test': False,
-            'chat_system_test': False,
+            'groq_library_available': GROQ_AVAILABLE,
+            'realtime_ai_chat_init': {},
+            'groq_client_initialized_in_chat': False,
+            'api_connection_test': {},
             'error_messages': [],
-            'debug_logs': []
+            'debug_logs': [] # Collect logs during the test
         }
 
-        # Check environment variables
+        # 1. Check Environment Variables
+        groq_api_key_env = os.getenv('GROQ_API_KEY')
         results['environment_check'] = {
-            'GROQ_API_KEY_set': bool(os.getenv('GROQ_API_KEY')),
-            'GROQ_API_KEY_value': os.getenv('GROQ_API_KEY', 'NOT_SET')[:20] + '...' if os.getenv('GROQ_API_KEY') else 'NOT_SET',
-            'USE_POSTGRES': os.getenv('USE_POSTGRES'),
-            'FLASK_ENV': os.getenv('FLASK_ENV'),
+            'GROQ_API_KEY_set': bool(groq_api_key_env),
+            'GROQ_API_KEY_value_preview': groq_api_key_env[:20] + '...' if groq_api_key_env else 'NOT_SET',
             'PORT': os.getenv('PORT')
         }
+        results['debug_logs'].append(f"Env Check: GROQ_API_KEY is {'SET' if groq_api_key_env else 'NOT SET'}")
 
-        # Test Groq library import
+        if not GROQ_AVAILABLE:
+            results['error_messages'].append("Groq library not installed or import failed.")
+            results['debug_logs'].append("❌ Groq library not available, skipping further tests.")
+            return jsonify(results)
+
+        # 2. Test RealtimeAIChat Initialization (using the fixed class)
         try:
-            from groq import Groq
-            results['groq_library_check']['import_success'] = True
-            results['debug_logs'].append("✅ Groq library imported successfully")
+            results['debug_logs'].append("Attempting to initialize RealtimeAIChat (fixed version)...")
+            # Use a temporary instance for testing
+            ai_chat_tester = RealtimeAIChat()
+            results['realtime_ai_chat_init']['success'] = True
+            results['groq_client_initialized_in_chat'] = bool(ai_chat_tester.groq_client)
+            results['debug_logs'].append(f"RealtimeAIChat initialized. Groq client inside: {bool(ai_chat_tester.groq_client)}")
 
-            # Test direct Groq client creation
-            groq_api_key = os.getenv('GROQ_API_KEY')
-            if groq_api_key:
-                results['debug_logs'].append(f"🔑 Using API key: {groq_api_key[:20]}...")
-
-                try:
-                    # Direct client test with error handling
-                    try:
-                        test_client = Groq(api_key=groq_api_key)
-                        results['debug_logs'].append("✅ Groq client created successfully")
-                    except TypeError as te:
-                        results['debug_logs'].append(f"❌ TypeError in Groq client: {te}")
-                        # Try alternative creation method
-                        import groq
-                        test_client = groq.Groq(api_key=groq_api_key)
-                        results['debug_logs'].append("✅ Groq client created with alternative method")
-
-                    # Test API call
-                    test_response = test_client.chat.completions.create(
-                        model="llama3-8b-8192",
-                        messages=[{"role": "user", "content": "Hello"}],
-                        max_tokens=5
-                    )
-                    results['groq_library_check']['direct_api_test'] = True
-                    results['groq_library_check']['test_response'] = test_response.choices[0].message.content
-                    results['debug_logs'].append("✅ Direct API call successful")
-
-                except Exception as e:
-                    results['groq_library_check']['direct_test_error'] = str(e)
-                    results['debug_logs'].append(f"❌ Direct Groq test failed: {e}")
+            if not ai_chat_tester.groq_client:
+                 results['error_messages'].append("Groq client failed to initialize within RealtimeAIChat.")
+                 results['debug_logs'].append("❌ Groq client is None after RealtimeAIChat init.")
             else:
-                results['debug_logs'].append("❌ No GROQ_API_KEY found")
-
-        except ImportError as e:
-            results['groq_library_check']['import_success'] = False
-            results['groq_library_check']['import_error'] = str(e)
-            results['debug_logs'].append(f"❌ Groq library import failed: {e}")
-
-        # Test RealtimeAIChat initialization
-        try:
-            from backend.utils.realtime_ai_chat import RealtimeAIChat
-            results['debug_logs'].append("✅ RealtimeAIChat imported")
-
-            ai_chat = RealtimeAIChat()
-            results['groq_client_initialized'] = bool(ai_chat.groq_client)
-            results['debug_logs'].append(f"🤖 RealtimeAIChat groq_client: {bool(ai_chat.groq_client)}")
-
-            if ai_chat.groq_client:
-                # Test basic API call through RealtimeAIChat
+                results['debug_logs'].append("✅ Groq client seems initialized within RealtimeAIChat.")
+                # 3. Test API Connection via the initialized client
                 try:
-                    response = ai_chat.groq_client.chat.completions.create(
+                    results['debug_logs'].append("Attempting API connection test via RealtimeAIChat client...")
+                    test_response = ai_chat_tester.groq_client.chat.completions.create(
                         model="llama3-8b-8192",
-                        messages=[{"role": "user", "content": "Test from Railway"}],
-                        max_tokens=10
+                        messages=[{"role": "user", "content": "Test from Railway (fixed)"}],
+                        max_tokens=10,
+                        timeout=30 # Keep timeout
                     )
-                    results['basic_api_test'] = True
-                    results['test_response'] = response.choices[0].message.content
-                    results['debug_logs'].append("✅ RealtimeAIChat API call successful")
+                    results['api_connection_test']['success'] = True
+                    results['api_connection_test']['response_preview'] = test_response.choices[0].message.content
+                    results['debug_logs'].append(f"✅ API Connection Test successful. Response: {test_response.choices[0].message.content}")
+                except Exception as api_e:
+                    results['api_connection_test']['success'] = False
+                    results['api_connection_test']['error'] = str(api_e)
+                    results['error_messages'].append(f"API connection test failed: {api_e}")
+                    results['debug_logs'].append(f"❌ API Connection Test failed: {api_e}")
 
-                except Exception as e:
-                    results['error_messages'].append(f"API call failed: {str(e)}")
-                    results['debug_logs'].append(f"❌ RealtimeAIChat API call failed: {e}")
-            else:
-                results['error_messages'].append("Groq client not initialized in RealtimeAIChat")
-                results['debug_logs'].append("❌ RealtimeAIChat groq_client is None")
+        except Exception as init_e:
+            results['realtime_ai_chat_init']['success'] = False
+            results['realtime_ai_chat_init']['error'] = str(init_e)
+            results['error_messages'].append(f"Failed to initialize RealtimeAIChat: {init_e}")
+            results['debug_logs'].append(f"❌ RealtimeAIChat initialization failed: {init_e}")
 
-        except Exception as e:
-            results['error_messages'].append(f"RealtimeAIChat initialization failed: {str(e)}")
-            results['debug_logs'].append(f"❌ RealtimeAIChat initialization failed: {e}")
-
-        return results
+        return jsonify(results)
 
     return app
 
-# Create app instance for WSGI servers (Gunicorn, etc.)
+# Create app instance for WSGI servers (Gunicorn, Waitress, etc.)
 app = create_app()
 
 if __name__ == '__main__':
-    print("🚀 Starting EmotiCare Application...")
-    print("🧹 All sessions will be cleared for fresh start")
-    print("🔐 Application will start at login page")
-    print("=" * 50)
+    print("🚀 Starting EmotiCare Application in Development Mode...")
+    # Use waitress for a production-like WSGI server locally if desired
+    # from waitress import serve
+    # serve(app, host='0.0.0.0', port=5000)
+    # Or use Flask's built-in server for debugging:
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
 
-    try:
-        app = create_app()
-
-        try:
-            session_dir = app.config.get('SESSION_FILE_DIR')
-            if session_dir and os.path.exists(session_dir):
-                import glob
-                session_files = glob.glob(os.path.join(session_dir, '*'))
-                for file_path in session_files:
-                    try:
-                        os.remove(file_path)
-                    except:
-                        pass
-                print(f"🧹 Cleaned up {len(session_files)} old session files")
-        except Exception as e:
-            print(f"⚠️ Session cleanup warning: {e}")
-
-        if app.config.get('DATABASE_CONNECTED', False):
-            print("✅ Application ready with database connection")
-        else:
-            print("⚠️ Application running in offline mode (no database)")
-            print("💡 Tip: Set USE_POSTGRES=true environment variable to use PostgreSQL")
-
-        print("🌐 Starting server on http://localhost:5000")
-        print("=" * 50)
-
-        app.run(debug=True, host='0.0.0.0', port=5000)
-
-    except Exception as e:
-        print(f"❌ Failed to start application: {e}")
-        print("💡 Application defaults to SQLite for local development")
-        print("💡 Set USE_POSTGRES=true environment variable to use PostgreSQL")
-        exit(1)
