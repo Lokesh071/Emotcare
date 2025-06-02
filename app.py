@@ -210,9 +210,16 @@ def create_app():
                 results['debug_logs'].append(f"🔑 Using API key: {groq_api_key[:20]}...")
 
                 try:
-                    # Direct client test
-                    test_client = Groq(api_key=groq_api_key)
-                    results['debug_logs'].append("✅ Groq client created successfully")
+                    # Direct client test with error handling
+                    try:
+                        test_client = Groq(api_key=groq_api_key)
+                        results['debug_logs'].append("✅ Groq client created successfully")
+                    except TypeError as te:
+                        results['debug_logs'].append(f"❌ TypeError in Groq client: {te}")
+                        # Try alternative creation method
+                        import groq
+                        test_client = groq.Groq(api_key=groq_api_key)
+                        results['debug_logs'].append("✅ Groq client created with alternative method")
 
                     # Test API call
                     test_response = test_client.chat.completions.create(

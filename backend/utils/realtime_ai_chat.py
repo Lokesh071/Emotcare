@@ -65,7 +65,19 @@ class RealtimeAIChat:
 
                     # Try to import and create client with more error handling
                     from groq import Groq
-                    self.groq_client = Groq(api_key=groq_api_key)
+
+                    # Create client with minimal parameters to avoid compatibility issues
+                    try:
+                        self.groq_client = Groq(api_key=groq_api_key)
+                    except TypeError as te:
+                        print(f"🔄 TypeError creating Groq client: {te}")
+                        # Try with just the API key, no other parameters
+                        try:
+                            import groq
+                            self.groq_client = groq.Groq(api_key=groq_api_key)
+                        except Exception as e2:
+                            print(f"❌ Alternative Groq creation failed: {e2}")
+                            raise te
 
                     print("🧪 Testing Groq API connection...")
                     test_response = self.groq_client.chat.completions.create(
