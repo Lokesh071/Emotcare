@@ -64,14 +64,24 @@ def create_app():
         print(f"⚠️ Filesystem session configuration issue: {e}. Falling back to null session.")
         app.config['SESSION_TYPE'] = 'null'
 
-    # Mail Configuration
+    # Mail Configuration with fallbacks to hardcoded values
     app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
     app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
     app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'false').lower() == 'true'
-    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+
+    # Use environment variables first, then fallback to hardcoded credentials
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'faceauth1@gmail.com')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'kvik axuf aeqy yhex')
     app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', app.config['MAIL_USERNAME'])
+
+    # Debug logging for email configuration
+    print(f"📧 Email Configuration:")
+    print(f"   MAIL_SERVER: {app.config['MAIL_SERVER']}")
+    print(f"   MAIL_PORT: {app.config['MAIL_PORT']}")
+    print(f"   MAIL_USERNAME: {app.config['MAIL_USERNAME']}")
+    print(f"   MAIL_PASSWORD: {'***SET***' if app.config['MAIL_PASSWORD'] else 'NOT_SET'}")
+    print(f"   MAIL_DEFAULT_SENDER: {app.config['MAIL_DEFAULT_SENDER']}")
 
     # Initialize extensions
     db.init_app(app)

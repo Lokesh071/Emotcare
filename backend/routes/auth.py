@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, session, render_template, url_for
+from flask import Blueprint, request, jsonify, session, render_template, url_for, current_app
 from backend.models import User, db
 from backend.utils.email_service import EmailService
 from flask_bcrypt import Bcrypt
@@ -8,7 +8,20 @@ from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__)
 bcrypt = Bcrypt()
-email_service = EmailService()
+
+def get_email_service():
+    """Get EmailService instance with proper mail configuration"""
+    try:
+        from flask_mail import Mail
+        mail = current_app.extensions.get('mail')
+        if mail:
+            return EmailService(mail)
+        else:
+            # Fallback to SMTP method
+            return EmailService()
+    except:
+        # Fallback to SMTP method
+        return EmailService()
 
 def validate_email(email):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -79,6 +92,7 @@ def register():
         db.session.add(user)
         db.session.commit()
 
+        email_service = get_email_service()
         email_sent = email_service.send_verification_email(user)
 
         if email_sent:
@@ -205,6 +219,7 @@ def resend_verification():
         user.verification_token = secrets.token_urlsafe(32)
         db.session.commit()
 
+        email_service = get_email_service()
         email_sent = email_service.send_verification_email(user)
 
         if email_sent:
@@ -241,6 +256,7 @@ def forgot_password():
             user.reset_token_expires = None
             db.session.commit()
 
+            email_service = get_email_service()
             email_sent = email_service.send_password_reset_email(user, temp_password)
 
             if email_sent:
