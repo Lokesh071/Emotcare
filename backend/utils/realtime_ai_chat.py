@@ -70,46 +70,65 @@ class RealtimeAIChat:
                     # Create a safe Groq client creation function
                     def create_groq_client_safe(api_key):
                         """Safely create Groq client handling various version incompatibilities"""
+
+                        # Method 1: Try to monkey-patch the Groq class to remove problematic parameters
+                        original_init = None
                         try:
-                            # Method 1: Standard creation
-                            return Groq(api_key=api_key)
-                        except TypeError as e:
-                            if 'proxies' in str(e):
-                                print(f"🔄 Proxies argument issue detected: {e}")
-                                # Method 2: Try with explicit None for problematic args
+                            original_init = Groq.__init__
+
+                            def patched_init(self, api_key=None, **kwargs):
+                                # Remove problematic arguments
+                                safe_kwargs = {}
+                                for key, value in kwargs.items():
+                                    if key not in ['proxies']:  # Remove proxies and other problematic args
+                                        safe_kwargs[key] = value
+                                return original_init(self, api_key=api_key, **safe_kwargs)
+
+                            # Temporarily patch the constructor
+                            Groq.__init__ = patched_init
+                            client = Groq(api_key=api_key)
+                            # Restore original constructor
+                            Groq.__init__ = original_init
+                            print("✅ Groq client created with monkey-patch method")
+                            return client
+
+                        except Exception as e1:
+                            print(f"🔄 Monkey-patch method failed: {e1}")
+                            # Restore original constructor if patching failed
+                            if original_init:
                                 try:
-                                    return Groq(api_key=api_key, base_url=None)
+                                    Groq.__init__ = original_init
                                 except:
                                     pass
 
-                                # Method 3: Use only positional argument
-                                try:
-                                    # Some versions might expect positional args
-                                    return Groq(api_key)
-                                except:
-                                    pass
+                        # Method 2: Try direct instantiation with minimal args
+                        env_backup = {}
+                        try:
+                            # Clear environment that might interfere
+                            problematic_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'proxies', 'PROXY']
+                            for var in problematic_vars:
+                                if var in os.environ:
+                                    env_backup[var] = os.environ[var]
+                                    del os.environ[var]
 
-                                # Method 4: Create with minimal kwargs
-                                try:
-                                    sig = inspect.signature(Groq.__init__)
-                                    valid_params = [p for p in sig.parameters.keys() if p != 'self']
-                                    print(f"🔍 Available Groq parameters: {valid_params}")
+                            client = Groq(api_key=api_key)
 
-                                    # Only use api_key if it's a valid parameter
-                                    if 'api_key' in valid_params:
-                                        return Groq(**{'api_key': api_key})
-                                    else:
-                                        print("❌ api_key not found in Groq constructor")
-                                        return None
-                                except Exception as e4:
-                                    print(f"❌ Inspection method failed: {e4}")
-                                    return None
-                            else:
-                                print(f"❌ Other TypeError: {e}")
-                                return None
-                        except Exception as e:
-                            print(f"❌ Unexpected error creating Groq client: {e}")
-                            return None
+                            # Restore environment
+                            for var, value in env_backup.items():
+                                os.environ[var] = value
+
+                            print("✅ Groq client created with environment cleanup")
+                            return client
+
+                        except Exception as e2:
+                            print(f"🔄 Environment cleanup method failed: {e2}")
+                            # Restore environment
+                            for var, value in env_backup.items():
+                                os.environ[var] = value
+
+                        # Method 3: Use fallback to rule-based system
+                        print("❌ All Groq creation methods failed, will use rule-based fallback")
+                        return None
 
                     # Use the safe creation function
                     self.groq_client = create_groq_client_safe(groq_api_key)
