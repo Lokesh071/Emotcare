@@ -27,5 +27,5 @@ RUN mkdir -p temp_sessions
 # Expose port
 EXPOSE 8080
 
-# Start command
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
+# Start command - Use Railway's dynamic PORT variable
+CMD gunicorn --bind 0.0.0.0:${PORT:-8080} app:app
