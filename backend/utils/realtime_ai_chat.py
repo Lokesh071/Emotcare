@@ -9,9 +9,14 @@ try:
     from groq import Groq
     GROQ_AVAILABLE = True
     print("✅ Groq AI library loaded successfully")
-except ImportError:
+    print(f"✅ Groq library version: {getattr(Groq, '__version__', 'unknown')}")
+except ImportError as e:
     GROQ_AVAILABLE = False
-    print("⚠️ Groq not available - install with: pip install groq")
+    print(f"⚠️ Groq not available - ImportError: {e}")
+    print("⚠️ Install with: pip install groq")
+except Exception as e:
+    GROQ_AVAILABLE = False
+    print(f"⚠️ Groq library error: {e}")
 
 try:
     import openai
