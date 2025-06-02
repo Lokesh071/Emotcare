@@ -68,28 +68,54 @@ class RealtimeAIChat:
 
                     # Create client with minimal parameters to avoid compatibility issues
                     try:
+                        # Clear any environment variables that might interfere
+                        import os
+                        old_proxies = os.environ.get('proxies')
+                        if 'proxies' in os.environ:
+                            del os.environ['proxies']
+
                         self.groq_client = Groq(api_key=groq_api_key)
+
+                        # Restore environment if it was set
+                        if old_proxies:
+                            os.environ['proxies'] = old_proxies
+
                     except TypeError as te:
                         print(f"🔄 TypeError creating Groq client: {te}")
-                        # Try with just the API key, no other parameters
+                        # Try creating with explicit parameters only
                         try:
-                            import groq
-                            self.groq_client = groq.Groq(api_key=groq_api_key)
-                        except Exception as e2:
-                            print(f"❌ Alternative Groq creation failed: {e2}")
-                            raise te
+                            # Use only the required parameter
+                            self.groq_client = Groq(api_key=groq_api_key, base_url=None)
+                        except TypeError:
+                            try:
+                                # Last resort: create with minimal signature
+                                import inspect
+                                sig = inspect.signature(Groq.__init__)
+                                params = list(sig.parameters.keys())
+                                print(f"🔍 Groq.__init__ parameters: {params}")
 
-                    print("🧪 Testing Groq API connection...")
-                    test_response = self.groq_client.chat.completions.create(
-                        model="llama3-8b-8192",
-                        messages=[{"role": "user", "content": "Hello"}],
-                        max_tokens=5,
-                        timeout=30  # Add timeout for Railway
-                    )
+                                # Create with only api_key
+                                kwargs = {'api_key': groq_api_key}
+                                self.groq_client = Groq(**kwargs)
+                            except Exception as e3:
+                                print(f"❌ All Groq creation methods failed: {e3}")
+                                self.groq_client = None
 
-                    print("✅ Groq AI client initialized successfully with real API key!")
-                    print("🚀 Real AI responses are now ENABLED!")
-                    print(f"🧪 Test response: {test_response.choices[0].message.content}")
+                    # Only test if client was created successfully
+                    if self.groq_client:
+                        print("🧪 Testing Groq API connection...")
+                        test_response = self.groq_client.chat.completions.create(
+                            model="llama3-8b-8192",
+                            messages=[{"role": "user", "content": "Hello"}],
+                            max_tokens=5,
+                            timeout=30  # Add timeout for Railway
+                        )
+
+                        print("✅ Groq AI client initialized successfully with real API key!")
+                        print("🚀 Real AI responses are now ENABLED!")
+                        print(f"🧪 Test response: {test_response.choices[0].message.content}")
+                    else:
+                        print("❌ Groq client was not created successfully")
                 except ImportError as ie:
                     print(f"❌ Groq import failed: {ie}")
                     self.groq_client = None
