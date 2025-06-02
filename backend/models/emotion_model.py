@@ -1,10 +1,18 @@
+# Optimize TensorFlow memory usage
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
 import tensorflow as tf
+# Configure TensorFlow for memory efficiency
+tf.config.threading.set_intra_op_parallelism_threads(1)
+tf.config.threading.set_inter_op_parallelism_threads(1)
+
 import numpy as np
 import cv2
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dense, Dropout, Flatten
 from tensorflow.keras.optimizers import Adam
-import os
 import pickle
 from .face_classification_models import FaceClassificationEmotionDetector
 
