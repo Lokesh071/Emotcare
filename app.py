@@ -168,6 +168,44 @@ def create_app():
     def internal_error(error):
         return render_template('500.html'), 500
 
+    @app.route('/test-groq')
+    def test_groq():
+        """Test Groq API functionality"""
+        import os
+        from backend.utils.realtime_ai_chat import RealtimeAIChat
+
+        results = {
+            'groq_api_key_set': bool(os.getenv('GROQ_API_KEY')),
+            'groq_client_initialized': False,
+            'basic_api_test': False,
+            'error_messages': []
+        }
+
+        try:
+            # Test AI chat initialization
+            ai_chat = RealtimeAIChat()
+            results['groq_client_initialized'] = bool(ai_chat.groq_client)
+
+            if ai_chat.groq_client:
+                # Test basic API call
+                try:
+                    response = ai_chat.groq_client.chat.completions.create(
+                        model="llama3-8b-8192",
+                        messages=[{"role": "user", "content": "Test from Railway"}],
+                        max_tokens=10
+                    )
+                    results['basic_api_test'] = True
+                    results['test_response'] = response.choices[0].message.content
+                except Exception as e:
+                    results['error_messages'].append(f"API call failed: {str(e)}")
+            else:
+                results['error_messages'].append("Groq client not initialized")
+
+        except Exception as e:
+            results['error_messages'].append(f"Initialization failed: {str(e)}")
+
+        return results
+
     return app
 
 # Create app instance for WSGI servers (Gunicorn, etc.)
