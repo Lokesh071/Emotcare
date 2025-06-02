@@ -50,10 +50,39 @@ body {
     gap: 15px;
 }
 
+/* Logo Image Styling */
+.logo-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    filter: drop-shadow(0 0 10px rgba(138, 43, 226, 0.8)) drop-shadow(0 0 20px rgba(138, 43, 226, 0.6));
+    animation: logoPulse 2s infinite alternate;
+    transition: all 0.3s ease;
+}
+
+.logo-image:hover {
+    filter: drop-shadow(0 0 15px rgba(138, 43, 226, 1)) drop-shadow(0 0 25px rgba(138, 43, 226, 0.8));
+    transform: scale(1.05);
+}
+
+@keyframes logoPulse {
+    0% {
+        filter: drop-shadow(0 0 10px rgba(138, 43, 226, 0.8)) drop-shadow(0 0 20px rgba(138, 43, 226, 0.6));
+        transform: scale(1);
+    }
+    100% {
+        filter: drop-shadow(0 0 15px rgba(138, 43, 226, 1)) drop-shadow(0 0 25px rgba(138, 43, 226, 0.8));
+        transform: scale(1.05);
+    }
+}
+
+/* Fallback emoji styling (if image fails to load) */
 .emoji-face {
     font-size: 3rem;
     filter: drop-shadow(0 0 10px #00ffff) drop-shadow(0 0 20px #ff00ff);
     animation: neonPulse 2s infinite alternate;
+    display: none; /* Hidden by default when logo image is used */
 }
 
 @keyframes neonPulse {
@@ -94,6 +123,20 @@ body {
             0 0 30px #00ffff,
             0 0 40px #ff00ff;
     }
+}
+
+/* Auth Logo Container */
+.auth-logo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.auth-logo-container .logo-image {
+    width: 80px;
+    height: 80px;
 }
 
 /* Navigation */

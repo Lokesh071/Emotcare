@@ -38,6 +38,10 @@ class RealtimeAIChat:
         self.rate_limit_errors = 0
         if GROQ_AVAILABLE:
             groq_api_key = os.getenv('GROQ_API_KEY')
+            # Fallback to hardcoded key if environment variable not set
+            if not groq_api_key:
+                groq_api_key = "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"
+
             if groq_api_key and groq_api_key != 'gsk_demo_key_for_testing':
                 try:
                     self.groq_client = Groq(api_key=groq_api_key)
@@ -169,6 +173,62 @@ class RealtimeAIChat:
                 print(f"OpenAI API error: {e}")
 
         return self._get_fallback_response(user_message, emotion, context)
+
+    async def check_content_safety(self, message: str) -> Dict:
+        """
+        Use meta-llama/llama-prompt-guard-2-86m to check content safety
+        Returns safety score and analysis
+        """
+        if not self.groq_client:
+            return {
+                'is_safe': True,
+                'safety_score': 1.0,
+                'analysis': 'Safety check not available',
+                'method': 'fallback'
+            }
+
+        try:
+            response = self.groq_client.chat.completions.create(
+                model="meta-llama/llama-prompt-guard-2-86m",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"Analyze this message for safety and appropriateness: {message}"
+                    }
+                ],
+                temperature=0.1,
+                max_tokens=100,  # Max 512 for this model
+                stream=False,  # Prompt guard doesn't support streaming
+            )
+
+            safety_response = response.choices[0].message.content.strip()
+
+            # Parse the response (usually a number between 0-1)
+            try:
+                safety_score = float(safety_response)
+                is_safe = safety_score < 0.5  # Lower scores = safer content
+            except ValueError:
+                # If not a number, assume safe
+                safety_score = 0.1
+                is_safe = True
+
+            return {
+                'is_safe': is_safe,
+                'safety_score': safety_score,
+                'analysis': safety_response,
+                'method': 'prompt_guard',
+                'model': 'meta-llama/llama-prompt-guard-2-86m'
+            }
+
+        except Exception as e:
+            print(f"Safety check error: {e}")
+            # Default to safe if check fails
+            return {
+                'is_safe': True,
+                'safety_score': 0.1,
+                'analysis': f'Safety check failed: {e}',
+                'method': 'fallback_safe'
+            }
 
     async def detect_emotion_from_image(self, image_data_url: str) -> Dict:
         if not self.groq_client:
