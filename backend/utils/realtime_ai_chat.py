@@ -45,6 +45,14 @@ class RealtimeAIChat:
             groq_api_key = os.getenv('GROQ_API_KEY')
             print(f"🔍 GROQ_API_KEY from environment: {groq_api_key[:20] + '...' if groq_api_key else 'NOT_SET'}")
 
+            # Clean the API key (remove any prefixes or whitespace)
+            if groq_api_key:
+                groq_api_key = groq_api_key.strip()
+                # Remove any potential prefix
+                if groq_api_key.startswith('GROQ_API_KEY='):
+                    groq_api_key = groq_api_key.replace('GROQ_API_KEY=', '')
+                    print("🧹 Cleaned API key prefix")
+
             # Fallback to hardcoded key if environment variable not set
             if not groq_api_key:
                 groq_api_key = "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"
@@ -53,23 +61,45 @@ class RealtimeAIChat:
             if groq_api_key and groq_api_key != 'gsk_demo_key_for_testing':
                 try:
                     print("🔧 Attempting to initialize Groq client...")
+                    print(f"🔑 Final API key: {groq_api_key[:20]}...")
+
+                    # Try to import and create client with more error handling
+                    from groq import Groq
                     self.groq_client = Groq(api_key=groq_api_key)
 
                     print("🧪 Testing Groq API connection...")
                     test_response = self.groq_client.chat.completions.create(
                         model="llama3-8b-8192",
                         messages=[{"role": "user", "content": "Hello"}],
-                        max_tokens=5
+                        max_tokens=5,
+                        timeout=30  # Add timeout for Railway
                     )
 
                     print("✅ Groq AI client initialized successfully with real API key!")
                     print("🚀 Real AI responses are now ENABLED!")
                     print(f"🧪 Test response: {test_response.choices[0].message.content}")
+                except ImportError as ie:
+                    print(f"❌ Groq import failed: {ie}")
+                    self.groq_client = None
                 except Exception as e:
                     print(f"❌ Failed to initialize Groq client: {e}")
                     print(f"❌ Error type: {type(e).__name__}")
                     print(f"❌ Error details: {str(e)}")
-                    self.groq_client = None
+                    # Try without timeout if client was created
+                    if self.groq_client:
+                        try:
+                            print("🔄 Retrying without timeout...")
+                            test_response = self.groq_client.chat.completions.create(
+                                model="llama3-8b-8192",
+                                messages=[{"role": "user", "content": "Hello"}],
+                                max_tokens=5
+                            )
+                            print("✅ Groq client working on retry!")
+                        except:
+                            print("❌ Retry also failed")
+                            self.groq_client = None
+                    else:
+                        self.groq_client = None
             else:
                 print("💡 Set GROQ_API_KEY environment variable for real AI responses")
         else:
