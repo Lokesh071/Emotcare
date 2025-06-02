@@ -67,35 +67,60 @@ class RealtimeAIChat:
                     print("🔧 Attempting to initialize Groq client directly...")
                     print(f"🔑 Using API key: {groq_api_key[:20]}...")
 
-                    # --- MODIFIED: Direct Initialization --- 
-                    # Directly initialize the client with only the API key.
-                    # This avoids potential issues with unexpected keyword arguments like 'proxies'
-                    # that might be injected by the environment or underlying libraries.
+                    # --- MODIFIED: Robust Initialization with Proxies Fix ---
+                    # This handles the Railway environment issue with unexpected 'proxies' argument
                     from groq import Groq
-                    self.groq_client = Groq(api_key=groq_api_key)
+
+                    # Method 1: Try to monkey-patch the Groq constructor
+                    original_init = Groq.__init__
+
+                    def safe_init(self, api_key=None, **kwargs):
+                        # Filter out problematic arguments
+                        safe_kwargs = {k: v for k, v in kwargs.items() if k not in ['proxies']}
+                        return original_init(self, api_key=api_key, **safe_kwargs)
+
+                    try:
+                        # Temporarily replace the constructor
+                        Groq.__init__ = safe_init
+                        self.groq_client = Groq(api_key=groq_api_key)
+                        print("✅ Groq client created with monkey-patch method")
+                    except Exception as patch_error:
+                        print(f"🔄 Monkey-patch failed: {patch_error}")
+                        # Try direct creation as fallback
+                        try:
+                            self.groq_client = Groq(api_key=groq_api_key)
+                            print("✅ Groq client created with direct method")
+                        except Exception as direct_error:
+                            print(f"❌ Direct creation also failed: {direct_error}")
+                            self.groq_client = None
+                    finally:
+                        # Always restore the original constructor
+                        Groq.__init__ = original_init
                     # --- End Modification ---
 
-                    print("✅ Groq client initialized successfully!")
-
-                    # Test connection (optional, but good practice)
-                    try:
-                        print("🧪 Testing Groq API connection...")
-                        test_response = self.groq_client.chat.completions.create(
-                            model="llama3-8b-8192",
-                            messages=[{"role": "user", "content": "Connection Test"}],
-                            max_tokens=5,
-                            timeout=30 # Keep timeout for potential network issues
-                        )
-                        print("✅ Groq API connection test successful!")
-                        print(f"🧪 Test response: {test_response.choices[0].message.content}")
-                        print("🚀 Real AI responses are now ENABLED!")
-                    except Exception as test_e:
-                        print(f"⚠️ Groq API connection test failed: {test_e}")
-                        print(f"⚠️ Error type: {type(test_e).__name__}")
-                        # Decide if client should be None if test fails. 
-                        # For now, we keep the client instance even if the test fails, 
-                        # as it might be a temporary network issue.
-                        # self.groq_client = None # Uncomment if connection test failure should disable Groq
+                    # Test connection only if client was successfully created
+                    if self.groq_client:
+                        print("✅ Groq client initialized successfully!")
+                        try:
+                            print("🧪 Testing Groq API connection...")
+                            test_response = self.groq_client.chat.completions.create(
+                                model="llama3-8b-8192",
+                                messages=[{"role": "user", "content": "Connection Test"}],
+                                max_tokens=5,
+                                timeout=30 # Keep timeout for potential network issues
+                            )
+                            print("✅ Groq API connection test successful!")
+                            print(f"🧪 Test response: {test_response.choices[0].message.content}")
+                            print("🚀 Real AI responses are now ENABLED!")
+                        except Exception as test_e:
+                            print(f"⚠️ Groq API connection test failed: {test_e}")
+                            print(f"⚠️ Error type: {type(test_e).__name__}")
+                            # Decide if client should be None if test fails.
+                            # For now, we keep the client instance even if the test fails,
+                            # as it might be a temporary network issue.
+                            # self.groq_client = None # Uncomment if connection test failure should disable Groq
+                    else:
+                        print("❌ Groq client was not created successfully")
 
                 except ImportError as ie:
                     print(f"❌ Groq import failed: {ie}")
