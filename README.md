@@ -43,13 +43,7 @@
 
 ---
 
-## 🚀 Live Demo
 
-**Try EmotiCare now:** [https://emotcare.onrender.com](https://emotcare.onrender.com)
-
-> **Note**: First load may take 30-60 seconds as the server spins up (free tier hosting)
-
----
 
 ## 🛠️ Technology Stack
 
@@ -68,13 +62,7 @@
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
 ![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=flat&logo=chartdotjs&logoColor=white)
 
-### AI & ML
-![Groq](https://img.shields.io/badge/Groq-AI-orange?style=flat)
-![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=flat&logo=openai&logoColor=white)
 
-### Deployment
-![Render](https://img.shields.io/badge/Render-46E3B7?style=flat&logo=render&logoColor=white)
-![Gunicorn](https://img.shields.io/badge/Gunicorn-499848?style=flat&logo=gunicorn&logoColor=white)
 
 </div>
 
