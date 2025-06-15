@@ -574,40 +574,41 @@ def ai_chat():
 
         # Get response from real-time AI chat system
         try:
-            # Use the working Groq AI chat system directly (no async loop needed)
-            print(f"🤖 Getting AI response for message: '{user_message}' with emotion: {detected_emotion}")
-
-            # Check if Groq is available and working
-            if hasattr(realtime_ai_chat, 'groq_client') and realtime_ai_chat.groq_client:
-                print("✅ Groq client is available, using real AI responses")
-
-                # Use the sync method that works with our fixed Groq client
-                ai_response = realtime_ai_chat.get_ai_response_sync(
-                    user_message,
-                    detected_emotion,
-                    {
-                        'is_first_emotion': is_first_emotion,
-                        'emotion_change': emotion_change,
-                        'previous_emotion': previous_emotion,
-                        'chat_continues_after_detection': chat_continues_after_detection
-                    }
-                )
-
-                # Format response to match expected structure
-                chat_response = {
-                    'response': ai_response,
-                    'detected_emotion': detected_emotion,
-                    'ai_service': 'groq',
-                    'is_ai_response': True,
-                    'follow_up': None,
-                    'coping_strategy': None,
-                    'suggestions': []
-                }
-                print(f"✅ Got Groq AI response: {ai_response[:100]}...")
-
+            # Check if Together.ai is available (via API key)
+            if hasattr(realtime_ai_chat, 'together_api_key') and realtime_ai_chat.together_api_key:
+                print("✅ Together.ai is available, using for unlimited messages")
+                ai_service = 'together'
+            # Fallback to Groq if available
+            elif hasattr(realtime_ai_chat, 'groq_client') and realtime_ai_chat.groq_client:
+                print("✅ Groq client is available, using as fallback")
+                ai_service = 'groq'
             else:
-                print("❌ Groq client not available, falling back to rule-based")
-                raise Exception("Groq client not available")
+                print("❌ No AI services available, falling back to rule-based")
+                raise Exception("No AI services available")
+
+            # Use the sync method that works with our AI clients
+            ai_response = realtime_ai_chat.get_ai_response_sync(
+                user_message,
+                detected_emotion,
+                {
+                    'is_first_emotion': is_first_emotion,
+                    'emotion_change': emotion_change,
+                    'previous_emotion': previous_emotion,
+                    'chat_continues_after_detection': chat_continues_after_detection
+                }
+            )
+
+            # Format response to match expected structure
+            chat_response = {
+                'response': ai_response,
+                'detected_emotion': detected_emotion,
+                'ai_service': ai_service,
+                'is_ai_response': True,
+                'follow_up': None,
+                'coping_strategy': None,
+                'suggestions': []
+            }
+            print(f"✅ Got AI response: {ai_response[:100]}...")
 
         except Exception as ai_error:
             print(f"❌ Real-time AI error: {ai_error}")

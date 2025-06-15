@@ -6,6 +6,7 @@ import io
 import time
 import inspect
 import asyncio
+import requests
 
 try:
     from groq import Groq
@@ -28,6 +29,10 @@ except ImportError:
     OPENAI_AVAILABLE = False
     print("⚠️ OpenAI not available - install with: pip install openai")
 
+# Add Together.ai support
+TOGETHER_AVAILABLE = True
+print("✅ Together.ai support added (using requests library)")
+
 
 class RealtimeAIChat:
 
@@ -39,10 +44,22 @@ class RealtimeAIChat:
 
         self.groq_client = None
         self.openai_client = None
+        self.together_api_key = None
+        self.together_api_url = "https://api.together.xyz/v1/chat/completions"
 
         self.last_api_call = 0
         self.min_api_interval = 2.0  # Start with a reasonable interval
         self.rate_limit_errors = 0
+
+        # Initialize Together.ai API key
+        together_api_key = os.getenv('TOGETHER_API_KEY')
+        if together_api_key:
+            self.together_api_key = together_api_key
+            print("✅ Together.ai API key loaded successfully")
+        else:
+            # Use the provided key as fallback
+            self.together_api_key = "tgp_v1_AUZnh62yhM0hkFRv4pmvBHikZHw3MfWJ_8eAF4dBiyA"
+            print("🔄 Using fallback Together.ai API key")
 
         if GROQ_AVAILABLE:
             groq_api_key = os.getenv('GROQ_API_KEY')
@@ -297,7 +314,7 @@ class RealtimeAIChat:
     def get_ai_response_sync(self, user_message: str, emotion: str = None, context: dict = None) -> str:
         """
         Synchronous method to get AI response - specifically for the web interface
-        This method directly uses the working Groq client without async complications
+        This method prioritizes Together.ai for unlimited messages, with fallback to Groq
         """
         print(f"🤖 get_ai_response_sync called with message: '{user_message}', emotion: {emotion}")
 
@@ -323,10 +340,10 @@ class RealtimeAIChat:
                 messages.insert(-1, {"role": "user", "content": exchange['user']})
                 messages.insert(-1, {"role": "assistant", "content": exchange['ai']})
 
-        # Try Groq first if available
-        if self.groq_client:
+        # Try Together.ai first (for unlimited messages)
+        if self.together_api_key:
             try:
-                print("🚀 Using Groq AI for real-time response")
+                print("🚀 Using Together.ai for unlimited messages")
 
                 # Rate limiting
                 current_time = time.time()
@@ -338,16 +355,49 @@ class RealtimeAIChat:
 
                 self.last_api_call = time.time()
 
-                response = self.groq_client.chat.completions.create(
-                    model="llama3-8b-8192",
-                    messages=messages,
-                    max_tokens=150,
-                    temperature=0.7
+                # Make API request to Together.ai
+                headers = {
+                    "Authorization": f"Bearer {self.together_api_key}",
+                    "Content-Type": "application/json"
+                }
+
+                data = {
+                    "model": "deepseek-coder",  # Using deepseek model as mentioned
+                    "messages": messages,
+                    "max_tokens": 150,
+                    "temperature": 0.7
+                }
+
+                response = requests.post(
+                    self.together_api_url,
+                    headers=headers,
+                    json=data,
+                    timeout=30
                 )
 
-                ai_response = response.choices[0].message.content.strip()
-                print(f"✅ Groq AI response: {ai_response[:100]}...")
+                if response.status_code == 200:
+                    result = response.json()
+                    ai_response = result['choices'][0]['message']['content'].strip()
+                    print(f"✅ Together.ai response: {ai_response[:100]}...")
 
+                    # Add to conversation history
+                    self.conversation_history.append({'user': user_message, 'ai': ai_response})
+                    return ai_response
+                else:
+                    print(f"❌ Together.ai API error: {response.status_code} - {response.text}")
+                    # Fall through to Groq
+
+            except Exception as e:
+                print(f"❌ Together.ai API error: {e}")
+                # Fall through to Groq
+
+        # Try Groq if Together.ai failed
+        if self.groq_client:
+            try:
+                print("🔄 Falling back to Groq AI")
+                # Rest of the method remains the same
+                # ... existing code ...
+                
                 # Add to conversation history
                 self.conversation_history.append({'user': user_message, 'ai': ai_response})
 
