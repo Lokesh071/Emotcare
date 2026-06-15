@@ -71,8 +71,8 @@ def create_app():
     app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'false').lower() == 'true'
 
     # Use environment variables first, then fallback to hardcoded credentials
-    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'faceauth1@gmail.com')
-    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'kvik axuf aeqy yhex')
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'faceauth@gmail.com')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'passcode')
     app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', app.config['MAIL_USERNAME'])
 
     # Debug logging for email configuration
