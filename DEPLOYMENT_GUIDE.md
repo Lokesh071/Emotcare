@@ -51,8 +51,8 @@ git push -u origin main
    USE_POSTGRES=true
    GROQ_API_KEY=your-groq-api-key
    OPENAI_API_KEY=your-openai-api-key
-   MAIL_USERNAME=faceauth1@gmail.com
-   MAIL_PASSWORD=kvik axuf aeqy yhex
+   MAIL_USERNAME=gmail
+   MAIL_PASSWORD=your passcode
    MAIL_SERVER=smtp.gmail.com
    MAIL_PORT=587
    MAIL_DEFAULT_SENDER=faceauth1@gmail.com
