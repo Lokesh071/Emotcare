@@ -81,9 +81,9 @@ GROQ_API_KEY=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
 MAIL_SERVER=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USE_TLS=true
-MAIL_USERNAME=faceauth1@gmail.com
-MAIL_PASSWORD=kvik axuf aeqy yhex
-MAIL_DEFAULT_SENDER=faceauth1@gmail.com
+MAIL_USERNAME=gmail
+MAIL_PASSWORD=passcode
+MAIL_DEFAULT_SENDER=gmail
 ```
 
 **Note**: Railway automatically provides:
