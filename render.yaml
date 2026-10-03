@@ -19,15 +19,15 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: MAIL_USERNAME
-        value: faceauth1@gmail.com
+        value: mail
       - key: MAIL_PASSWORD
-        value: kvik axuf aeqy yhex
+        value: passcode
       - key: MAIL_SERVER
         value: smtp.gmail.com
       - key: MAIL_PORT
         value: 587
       - key: MAIL_DEFAULT_SENDER
-        value: faceauth1@gmail.com
+        value: mail
 
 databases:
   - name: emotcare-db
