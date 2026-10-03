@@ -75,7 +75,7 @@ FLASK_ENV=production
 SECRET_KEY=your-secret-key-here-make-it-long-and-random
 
 # AI API Keys
-GROQ_API_KEY=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
+GROQ_API_KEY=api
 
 # Email Configuration
 MAIL_SERVER=smtp.gmail.com
